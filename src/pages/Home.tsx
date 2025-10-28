@@ -141,16 +141,16 @@ const Home = () => {
       <Header />
       
       {/* Hero Section */}
-      <section className="relative bg-gradient-to-b from-primary from-0% via-primary/40 via-40% to-background to-80% py-16">
+      <section className="relative bg-gradient-to-b from-primary from-0% via-primary/40 via-40% to-background to-80% py-8 sm:py-12 md:py-16">
         <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?w=1200&h=800&fit=crop')] bg-cover bg-center opacity-5" />
-        <div className="container relative z-10">
+        <div className="container relative z-10 px-4">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
-            className="text-center mb-8"
+            className="text-center mb-6 sm:mb-8"
           >
-            <h1 className="text-3xl md:text-5xl font-bold text-white mb-4 whitespace-nowrap">
+            <h1 className="text-2xl sm:text-3xl md:text-5xl font-bold text-white mb-4">
               Book Your Ride, Travel in Style
             </h1>
           </motion.div>

@@ -37,11 +37,11 @@ const BookingForm = () => {
     <div className="bg-card rounded-2xl shadow-xl p-6 md:p-8 animate-fade-in">
       {/* Trip Type Selection */}
       <div className="mb-8">
-        <div className="flex gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
           <Button
             type="button"
             onClick={() => setTripType("one-way")}
-            className={`flex-1 py-6 text-base font-semibold rounded-xl transition-all ${
+            className={`w-full py-5 sm:py-6 text-sm sm:text-base font-semibold rounded-xl transition-all ${
               tripType === "one-way"
                 ? "bg-primary text-primary-foreground hover:bg-primary/90 border-0"
                 : "bg-transparent text-foreground hover:bg-muted/50 border-2 border-foreground shadow-none"
@@ -52,7 +52,7 @@ const BookingForm = () => {
           <Button
             type="button"
             onClick={() => setTripType("round-trip")}
-            className={`flex-1 py-6 text-base font-semibold rounded-xl transition-all ${
+            className={`w-full py-5 sm:py-6 text-sm sm:text-base font-semibold rounded-xl transition-all ${
               tripType === "round-trip"
                 ? "bg-primary text-primary-foreground hover:bg-primary/90 border-0"
                 : "bg-transparent text-foreground hover:bg-muted/50 border-2 border-foreground shadow-none"
@@ -63,7 +63,7 @@ const BookingForm = () => {
           <Button
             type="button"
             onClick={() => setTripType("local")}
-            className={`flex-1 py-6 text-base font-semibold rounded-xl transition-all ${
+            className={`w-full py-5 sm:py-6 text-sm sm:text-base font-semibold rounded-xl transition-all ${
               tripType === "local"
                 ? "bg-primary text-primary-foreground hover:bg-primary/90 border-0"
                 : "bg-transparent text-foreground hover:bg-muted/50 border-2 border-foreground shadow-none"

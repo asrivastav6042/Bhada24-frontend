@@ -101,9 +101,9 @@ const ReviewBooking = () => {
     <div className="min-h-screen flex flex-col">
       <Header />
 
-      <div className="container py-8 flex-1">
+      <div className="container py-4 sm:py-6 md:py-8 flex-1 px-4">
         <div className="max-w-7xl mx-auto">
-          <h1 className="text-3xl font-bold mb-8">Review Your Booking</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6 md:mb-8">Review Your Booking</h1>
 
           <div className="grid lg:grid-cols-3 gap-6">
             {/* Left Column - Cab & Trip Details */}
@@ -118,7 +118,7 @@ const ReviewBooking = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="grid md:grid-cols-5 gap-6">
-                    {/* Image Carousel */}
+                     {/* Image Carousel */}
                     <div className="md:col-span-2">
                       <Carousel className="w-full">
                         <CarouselContent>
@@ -127,33 +127,33 @@ const ReviewBooking = () => {
                               <img
                                 src={image}
                                 alt={`${cab.name} view ${index + 1}`}
-                                className="w-full h-48 object-cover rounded-lg"
+                                className="w-full h-40 sm:h-48 object-cover rounded-lg"
                               />
                             </CarouselItem>
                           ))}
                         </CarouselContent>
-                        <CarouselPrevious className="left-2" />
-                        <CarouselNext className="right-2" />
+                        <CarouselPrevious className="left-1 sm:left-2" />
+                        <CarouselNext className="right-1 sm:right-2" />
                       </Carousel>
                       
                       {/* Thumbnail Preview */}
-                      <div className="flex gap-2 mt-3">
+                      <div className="flex gap-1.5 sm:gap-2 mt-2 sm:mt-3">
                         {cabImages.slice(0, 4).map((image, index) => (
                           <img
                             key={index}
                             src={image}
                             alt={`Thumbnail ${index + 1}`}
-                            className="w-16 h-12 object-cover rounded border-2 border-border cursor-pointer hover:border-primary transition-colors"
+                            className="w-12 h-9 sm:w-16 sm:h-12 object-cover rounded border-2 border-border cursor-pointer hover:border-primary transition-colors"
                           />
                         ))}
                       </div>
                     </div>
 
                     {/* Cab Information */}
-                    <div className="md:col-span-3 space-y-4">
+                    <div className="md:col-span-3 space-y-3 sm:space-y-4">
                       <div>
-                        <h3 className="font-bold text-2xl mb-2">{cab.name}</h3>
-                        <p className="text-muted-foreground">
+                        <h3 className="font-bold text-xl sm:text-2xl mb-2">{cab.name}</h3>
+                        <p className="text-xs sm:text-sm text-muted-foreground">
                           {cab.type} • {cab.ac ? "AC" : "Non-AC"} • {cab.seats} Seats • Model: {cab.model || "2023"} • Color: {cab.color || "Silver"}
                         </p>
                       </div>

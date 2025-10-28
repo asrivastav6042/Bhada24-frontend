@@ -57,10 +57,10 @@ const CabResults = () => {
     <div className="min-h-screen flex flex-col">
       <Header />
 
-      <div className="container py-8 flex-1">
+      <div className="container py-4 sm:py-6 md:py-8 flex-1 px-4">
         {/* Search Summary */}
-        <div className="mb-6 p-4 bg-secondary rounded-lg">
-          <div className="flex flex-wrap gap-4 text-sm">
+        <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-secondary rounded-lg">
+          <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2 sm:gap-4 text-xs sm:text-sm">
             <span className="font-medium">From: {from}</span>
             <span className="font-medium">To: {to}</span>
             <span className="font-medium">Date: {date}</span>
@@ -69,10 +69,14 @@ const CabResults = () => {
 
         {/* Booking Type Tabs */}
         <div className="mb-6">
-          <Tabs value={bookingType} onValueChange={setBookingType}>
-            <TabsList>
-              <TabsTrigger value="normal">Normal Booking</TabsTrigger>
-              <TabsTrigger value="bulk">Bulk Booking</TabsTrigger>
+          <Tabs value={bookingType} onValueChange={setBookingType} className="w-full">
+            <TabsList className="w-full sm:w-auto grid grid-cols-2 sm:inline-flex">
+              <TabsTrigger value="normal" className="text-sm sm:text-base">
+                Normal Booking
+              </TabsTrigger>
+              <TabsTrigger value="bulk" className="text-sm sm:text-base">
+                Bulk Booking
+              </TabsTrigger>
             </TabsList>
           </Tabs>
         </div>

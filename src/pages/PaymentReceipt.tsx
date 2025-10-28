@@ -33,15 +33,15 @@ const PaymentReceipt = () => {
     <div className="min-h-screen flex flex-col">
       <Header />
 
-      <div className="container py-8 flex-1">
+      <div className="container py-4 sm:py-6 md:py-8 flex-1 px-4">
         <div className="max-w-3xl mx-auto">
           {/* Success Message */}
-          <div className="text-center mb-8 animate-fade-in">
-            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-green-100 mb-4">
-              <CheckCircle className="h-12 w-12 text-green-600" />
+          <div className="text-center mb-6 sm:mb-8 animate-fade-in">
+            <div className="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-green-100 mb-3 sm:mb-4">
+              <CheckCircle className="h-10 w-10 sm:h-12 sm:w-12 text-green-600" />
             </div>
-            <h1 className="text-3xl font-bold mb-2">Payment Successful!</h1>
-            <p className="text-muted-foreground">Your booking has been confirmed</p>
+            <h1 className="text-2xl sm:text-3xl font-bold mb-2">Payment Successful!</h1>
+            <p className="text-sm sm:text-base text-muted-foreground">Your booking has been confirmed</p>
           </div>
 
           {/* Receipt Card */}
