@@ -1,0 +1,85 @@
+[
+  {
+    "id": "1",
+    "name": "Swift Dzire",
+    "type": "Sedan",
+    "image": "https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=400&h=300&fit=crop",
+    "images": [
+      "https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=400&h=300&fit=crop",
+      "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=400&h=300&fit=crop",
+      "https://images.unsplash.com/photo-1583121274602-3e2820c69888?w=400&h=300&fit=crop"
+    ],
+    "seats": 5,
+    "ac": true,
+    "pricePerKm": 12,
+    "basePrice": 500,
+    "rating": 5.0,
+    "reviewsCount": 1,
+    "regNo": "DL-01-AB-1234",
+    "model": "2023",
+    "color": "Silver",
+    "fuelType": "Petrol",
+    "insurance": true,
+    "tollTax": false
+  },
+  {
+    "id": "2",
+    "name": "Toyota Innova",
+    "type": "SUV",
+    "image": "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=400&h=300&fit=crop",
+    "seats": 7,
+    "ac": true,
+    "pricePerKm": 18,
+    "basePrice": 800,
+    "rating": 4.7,
+    "regNo": "DL-02-CD-5678"
+  },
+  {
+    "id": "3",
+    "name": "Honda City",
+    "type": "Sedan",
+    "image": "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=400&h=300&fit=crop",
+    "seats": 4,
+    "ac": true,
+    "pricePerKm": 14,
+    "basePrice": 600,
+    "rating": 4.6,
+    "regNo": "DL-03-EF-9012"
+  },
+  {
+    "id": "4",
+    "name": "Maruti Ertiga",
+    "type": "MUV",
+    "image": "https://images.unsplash.com/photo-1583121274602-3e2820c69888?w=400&h=300&fit=crop",
+    "seats": 6,
+    "ac": true,
+    "pricePerKm": 15,
+    "basePrice": 700,
+    "rating": 4.4,
+    "regNo": "DL-04-GH-3456"
+  },
+  {
+    "id": "5",
+    "name": "Hyundai Creta",
+    "type": "SUV",
+    "image": "https://images.unsplash.com/photo-1619405399517-d7fce0f13302?w=400&h=300&fit=crop",
+    "seats": 5,
+    "ac": true,
+    "pricePerKm": 16,
+    "basePrice": 750,
+    "rating": 4.8,
+    "regNo": "DL-05-IJ-7890"
+  },
+  {
+    "id": "6",
+    "name": "Mahindra XUV500",
+    "type": "SUV",
+    "image": "https://images.unsplash.com/photo-1581540222194-0def2dda95b8?w=400&h=300&fit=crop",
+    "seats": 7,
+    "ac": true,
+    "pricePerKm": 17,
+    "basePrice": 850,
+    "rating": 4.5,
+    "regNo": "DL-06-KL-2345"
+  }
+]

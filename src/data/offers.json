@@ -1,0 +1,23 @@
+[
+  {
+    "id": "1",
+    "title": "First Ride Offer",
+    "description": "Get 20% off on your first ride",
+    "code": "FIRST20",
+    "discount": 20
+  },
+  {
+    "id": "2",
+    "title": "Weekend Special",
+    "description": "Save 15% on weekend bookings",
+    "code": "WEEKEND15",
+    "discount": 15
+  },
+  {
+    "id": "3",
+    "title": "Round Trip Deal",
+    "description": "Get 25% off on round trips",
+    "code": "ROUND25",
+    "discount": 25
+  }
+]
