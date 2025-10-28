@@ -50,7 +50,7 @@ const PaymentReceipt = () => {
               <div className="flex items-center justify-between">
                 <CardTitle className="flex items-center gap-2">
                   <Car className="h-6 w-6" />
-                  BharatTaxi
+                  Bhada24
                 </CardTitle>
                 <span className="text-sm">Receipt</span>
               </div>
