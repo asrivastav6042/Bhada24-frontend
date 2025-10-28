@@ -90,25 +90,26 @@ const MyBookings = () => {
 
   const BookingCard = ({ booking }: { booking: Booking }) => (
     <Card className="hover:shadow-lg transition-shadow">
-      <CardContent className="p-6">
-        <div className="flex gap-4">
+      <CardContent className="p-4 sm:p-6">
+        <div className="flex flex-col sm:flex-row gap-4">
           <img
             src={booking.carImage}
             alt={booking.carName}
-            className="w-32 h-24 object-cover rounded-lg"
+            className="w-full sm:w-32 h-48 sm:h-24 object-cover rounded-lg"
           />
-          <div className="flex-1 space-y-2">
-            <div className="flex items-start justify-between">
-              <div>
-                <h3 className="font-semibold text-lg flex items-center gap-2">
-                  <Car className="h-5 w-5 text-primary" />
-                  {booking.carName}
+          <div className="flex-1 space-y-2 min-w-0">
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+              <div className="min-w-0">
+                <h3 className="font-semibold text-base sm:text-lg flex items-center gap-2">
+                  <Car className="h-4 w-4 sm:h-5 sm:w-5 text-primary shrink-0" />
+                  <span className="truncate">{booking.carName}</span>
                 </h3>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-xs sm:text-sm text-muted-foreground truncate">
                   Booking ID: {booking.bookingId}
                 </p>
               </div>
               <Badge
+                className="self-start shrink-0"
                 variant={
                   booking.status === "upcoming"
                     ? "default"
@@ -121,35 +122,37 @@ const MyBookings = () => {
               </Badge>
             </div>
 
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <MapPin className="h-4 w-4" />
-              <span>
+            <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground">
+              <MapPin className="h-3 w-3 sm:h-4 sm:w-4 shrink-0" />
+              <span className="truncate">
                 {booking.from} → {booking.to}
               </span>
             </div>
 
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Calendar className="h-4 w-4" />
+            <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground">
+              <Calendar className="h-3 w-3 sm:h-4 sm:w-4 shrink-0" />
               <span>{new Date(booking.date).toLocaleDateString()}</span>
             </div>
 
-            <div className="flex items-center justify-between pt-2">
-              <p className="text-xl font-bold text-primary">₹{booking.amount}</p>
-              <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2">
+              <p className="text-lg sm:text-xl font-bold text-primary">₹{booking.amount}</p>
+              <div className="flex flex-wrap gap-2">
                 <Button
                   size="sm"
                   variant="outline"
                   onClick={() => handleViewDetails(booking.bookingId)}
+                  className="flex-1 sm:flex-none text-xs sm:text-sm"
                 >
-                  <Eye className="h-4 w-4 mr-1" />
+                  <Eye className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                   Details
                 </Button>
                 <Button
                   size="sm"
                   variant="outline"
                   onClick={() => handleDownloadReceipt(booking)}
+                  className="flex-1 sm:flex-none text-xs sm:text-sm"
                 >
-                  <Download className="h-4 w-4 mr-1" />
+                  <Download className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                   Receipt
                 </Button>
                 {booking.status === "upcoming" && (
@@ -157,8 +160,9 @@ const MyBookings = () => {
                     size="sm"
                     variant="destructive"
                     onClick={() => handleCancelBooking(booking.bookingId)}
+                    className="w-full sm:w-auto text-xs sm:text-sm"
                   >
-                    <X className="h-4 w-4 mr-1" />
+                    <X className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                     Cancel
                   </Button>
                 )}
@@ -172,12 +176,16 @@ const MyBookings = () => {
 
   return (
     <div className="max-w-6xl">
-      <h1 className="text-3xl font-bold mb-6">My Bookings</h1>
+      <h1 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6">My Bookings</h1>
 
       <Tabs defaultValue="upcoming" className="w-full">
-        <TabsList className="grid w-full max-w-md grid-cols-2">
-          <TabsTrigger value="upcoming">Upcoming Bookings</TabsTrigger>
-          <TabsTrigger value="history">Booking History</TabsTrigger>
+        <TabsList className="grid w-full sm:max-w-md grid-cols-2">
+          <TabsTrigger value="upcoming" className="text-xs sm:text-sm">
+            Upcoming Bookings
+          </TabsTrigger>
+          <TabsTrigger value="history" className="text-xs sm:text-sm">
+            Booking History
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="upcoming" className="space-y-4 mt-6">
