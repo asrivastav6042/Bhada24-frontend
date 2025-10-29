@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Phone, Mail, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -7,6 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { toast } from "sonner";
+import { startPhoneLogin, verifyOtpAndLogin } from "@/services/authService";
+import type { ConfirmationResult } from "@/services/firebaseOtpService";
 import Header from "@/components/Header";
 
 const Login = () => {
@@ -15,39 +17,90 @@ const Login = () => {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
+  const confirmationRef = useRef<ConfirmationResult | null>(null);
 
-  const handleSendOTP = () => {
-    if (!phoneNumber || phoneNumber.length < 10) {
+  const handleSendOTP = async () => {
+    if (!phoneNumber || phoneNumber.replace(/\D/g, '').length < 10) {
       toast.error("Please enter a valid phone number");
       return;
     }
 
+    if (loading) return; // prevent double sends
+
     setLoading(true);
-    // Simulate OTP sending
-    setTimeout(() => {
+    try {
+      const phoneWithCode = `+91${phoneNumber.replace(/\D/g, '').slice(-10)}`;
+      // Reset any previous OTP attempt state when sending again
+      confirmationRef.current = null;
+      const confirmation = await startPhoneLogin(phoneWithCode, 'recaptcha-container');
+      confirmationRef.current = confirmation as ConfirmationResult;
+      setStep('otp');
+      toast.success('OTP sent successfully!');
+    } catch (err: any) {
+      console.error('sendOtp error', err);
+      toast.error(err?.message || 'Failed to send OTP. Please try again.');
+    } finally {
       setLoading(false);
-      setStep("otp");
-      toast.success("OTP sent successfully!");
-    }, 1500);
+    }
   };
 
-  const handleVerifyOTP = () => {
+  const handleVerifyOTP = async () => {
     if (otp.length !== 6) {
-      toast.error("Please enter a valid 6-digit OTP");
+      toast.error('Please enter a valid 6-digit OTP');
       return;
     }
 
+    if (!confirmationRef.current) {
+      toast.error('No OTP request found. Please request OTP again.');
+      setStep('phone');
+      return;
+    }
+
+    if (loading) return; // prevent double verify
+
     setLoading(true);
-    // Simulate OTP verification
-    setTimeout(() => {
+    try {
+      const phonePlain = phoneNumber.replace(/\D/g, '').slice(-10);
+      const { user, token } = await verifyOtpAndLogin(confirmationRef.current, otp, phonePlain);
+      // Clear the confirmation result after successful verification to avoid reuse
+      confirmationRef.current = null;
+      // persist login state
+      try { localStorage.setItem('isLoggedIn', 'true'); } catch (e) {}
+      try { localStorage.setItem('userPhone', phonePlain); } catch (e) {}
+      try { sessionStorage.setItem('userPhone', phonePlain); } catch (e) {}
+      try { localStorage.setItem('userName', (user && (user as any).name) || ''); } catch (e) {}
+      try { sessionStorage.setItem('userName', (user && (user as any).name) || ''); } catch (e) {}
+      // persist userId defensively if returned
+      let uid = (user && ((user as any).userId || (user as any).id || (user as any).user_id || (user as any)._id)) || null;
+      if (!uid) {
+        // If userId missing, fetch user info by phone
+        try {
+          const api = await import('@/apiconfig/api');
+          const userInfoResp = await api.default.request(`/api/users/find/${phonePlain}`);
+          let userInfo = userInfoResp;
+          if (Array.isArray(userInfoResp?.responseData)) {
+            userInfo = userInfoResp.responseData[0] || {};
+          }
+          uid = userInfo?.userId || userInfo?.id || userInfo?.user_id || userInfo?._id || null;
+        } catch (e) {}
+      }
+      if (uid) {
+        try { localStorage.setItem('userId', String(uid)); } catch (e) {}
+        try { sessionStorage.setItem('userId', String(uid)); } catch (e) {}
+      }
+      toast.success('Login successful!');
+      navigate('/dashboard');
+    } catch (err: any) {
+      console.error('verifyOtp error', err);
+      const msg = err?.code === 'auth/invalid-verification-code' || err?.message?.includes('INVALID_CODE')
+        ? 'Invalid OTP. Please try again.'
+        : err?.code === 'auth/code-expired'
+        ? 'OTP expired. Please resend and try again.'
+        : 'OTP verification failed. Please try again.';
+      toast.error(msg);
+    } finally {
       setLoading(false);
-      toast.success("Login successful!");
-      // Store login state (mock)
-      localStorage.setItem("isLoggedIn", "true");
-      localStorage.setItem("userPhone", phoneNumber);
-      localStorage.setItem("userName", "User");
-      navigate("/dashboard");
-    }, 1500);
+    }
   };
 
   const handleGoogleLogin = () => {
@@ -174,6 +227,8 @@ const Login = () => {
             )}
           </CardContent>
         </Card>
+        {/* Firebase reCAPTCHA container (required by Firebase phone auth) */}
+        <div id="recaptcha-container" />
       </div>
     </>
   );
