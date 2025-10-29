@@ -14,6 +14,7 @@ import MyBookings from "./pages/dashboard/MyBookings";
 import Rating from "./pages/dashboard/Rating";
 import Settings from "./pages/dashboard/Settings";
 import NotFound from "./pages/NotFound";
+import Notifications from "./pages/Notifications";
 
 const queryClient = new QueryClient();
 
@@ -29,6 +30,7 @@ const App = () => (
           <Route path="/review-booking" element={<ReviewBooking />} />
           <Route path="/receipt" element={<PaymentReceipt />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/notifications" element={<Notifications />} />
           <Route path="/dashboard" element={<Dashboard />}>
             <Route index element={<MyProfile />} />
             <Route path="profile" element={<MyProfile />} />

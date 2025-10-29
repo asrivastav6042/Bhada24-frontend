@@ -1,14 +1,41 @@
 import { User, Calendar, Star, Settings, LogOut, Menu } from "lucide-react";
+import { useEffect, useState } from "react";
+import api from '@/apiconfig/api';
 import { NavLink, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { toast } from "sonner";
-import { useState } from "react";
+// removed duplicate useState import
 
 const DashboardSidebar = () => {
   const navigate = useNavigate();
-  const userName = localStorage.getItem("userName") || "User";
+  const [userName, setUserName] = useState(localStorage.getItem("userName") || "User");
+  const [userPhone, setUserPhone] = useState(localStorage.getItem("userPhone") || "");
+  const [profileImageUrl, setProfileImageUrl] = useState(localStorage.getItem("profileImageUrl") || "");
   const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    setUserName(localStorage.getItem("userName") || "User");
+    setUserPhone(localStorage.getItem("userPhone") || "");
+    let imgUrl = localStorage.getItem("profileImageUrl") || "";
+    if (!imgUrl) {
+      // Fetch from backend if not in localStorage
+      const userId = localStorage.getItem('userId') || sessionStorage.getItem('userId');
+      if (userId) {
+        api.request(`/api/common/getImage/${userId}`, 'GET').then(res => {
+          if (Array.isArray(res?.responseData)) {
+            imgUrl = res.responseData[0]?.imageUrl || "";
+          } else if (res?.imageUrl) {
+            imgUrl = res.imageUrl;
+          }
+          setProfileImageUrl(imgUrl);
+          if (imgUrl) localStorage.setItem("profileImageUrl", imgUrl);
+        });
+      }
+    } else {
+      setProfileImageUrl(imgUrl);
+    }
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem("isLoggedIn");
@@ -28,9 +55,12 @@ const DashboardSidebar = () => {
 
   const SidebarContent = () => (
     <>
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-primary">bhada24</h1>
-        <p className="text-sm text-muted-foreground mt-1">Welcome, {userName}</p>
+      <div className="mb-8 flex flex-col items-center">
+        
+        <p className="text-md font-bold text-center">Welcome
+          <br/>
+          {userName}</p>
+        
       </div>
 
       <nav className="space-y-2">
