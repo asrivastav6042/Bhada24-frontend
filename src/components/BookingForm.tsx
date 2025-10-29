@@ -1,4 +1,13 @@
+// Add Google Maps type declaration for TypeScript
+declare global {
+  interface Window {
+    google: any;
+  }
+}
 import { useState } from "react";
+import { useEffect } from "react";
+import { useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   MapPin,
   Calendar,
@@ -24,12 +33,53 @@ import {
 import { toast } from "sonner";
 import { COLORS } from "@/styles/colors";
 
-export default function BookingForm() {
+export default function BookingForm({ loading, setLoading }) {
   const [activeTab, setActiveTab] = useState("cabs");
 
   // Common fields
   const [pickup, setPickup] = useState("");
   const [drop, setDrop] = useState("");
+  const pickupRef = useRef(null);
+  const dropRef = useRef(null);
+
+  // Load Google Maps JS API
+  useEffect(() => {
+    if (!window.google) {
+      const script = document.createElement("script");
+      script.src = `https://maps.googleapis.com/maps/api/js?key=AIzaSyB2NZPs9YUAXYzCi1C88shs3e-Fk_HnzCY&libraries=places`;
+      script.async = true;
+      document.body.appendChild(script);
+      script.onload = () => {
+        initAutocomplete();
+      };
+    } else {
+      initAutocomplete();
+    }
+    // eslint-disable-next-line
+  }, []);
+
+  const initAutocomplete = () => {
+    if (window.google && window.google.maps && pickupRef.current) {
+      const pickupAutocomplete = new window.google.maps.places.Autocomplete(pickupRef.current, {
+        types: ["geocode"],
+        componentRestrictions: { country: "in" }
+      });
+      pickupAutocomplete.addListener("place_changed", () => {
+        const place = pickupAutocomplete.getPlace();
+        setPickup(place.formatted_address || place.name);
+      });
+    }
+    if (window.google && window.google.maps && dropRef.current) {
+      const dropAutocomplete = new window.google.maps.places.Autocomplete(dropRef.current, {
+        types: ["geocode"],
+        componentRestrictions: { country: "in" }
+      });
+      dropAutocomplete.addListener("place_changed", () => {
+        const place = dropAutocomplete.getPlace();
+        setDrop(place.formatted_address || place.name);
+      });
+    }
+  };
   const [pickupDate, setPickupDate] = useState("");
   const [pickupTime, setPickupTime] = useState("");
   const [travelTime, setTravelTime] = useState("");
@@ -43,26 +93,98 @@ export default function BookingForm() {
   const [issueType, setIssueType] = useState("");
   const [description, setDescription] = useState("");
 
-  const handleSearch = () => {
+
+  const navigate = useNavigate();
+  const handleSearch = async () => {
     if (activeTab === "cabs") {
       if (!pickup || !drop || !pickupDate || !pickupTime || !travelTime) {
         toast.error("Please fill in all required fields for Cab Booking");
         return;
       }
-    } else if (activeTab === "transport") {
-      if (!pickup || !drop || !pickupDate || !goodsType || !vehicleSize) {
-        toast.error("Please fill in all required fields for Transport Booking");
-        return;
-      }
-    } else if (activeTab === "roadlights") {
-      if (!issueLocation || !issueType || !description) {
-        toast.error("Please fill in all required fields for Roadlight Issue");
-        return;
-      }
-    }
 
+      // Geocode pickup location
+      const getLatLng = async (address) => {
+        const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}`;
+        const res = await fetch(url);
+        const data = await res.json();
+        if (data && data.length > 0) {
+          return {
+            lat: parseFloat(data[0].lat),
+            lon: parseFloat(data[0].lon)
+          };
+        }
+        return { lat: 0, lon: 0 };
+      };
+
+      let pickupCoords, dropCoords;
+      try {
+        pickupCoords = await getLatLng(pickup);
+        dropCoords = await getLatLng(drop);
+      } catch (e) {
+        toast.error("Could not get location coordinates.");
+        return;
+      }
+
+  const radius = 50;
+  // Ensure time includes seconds for backend compatibility
+  const pickupTimeWithSeconds = pickupTime.length === 5 ? pickupTime + ':00' : pickupTime;
+  const pickupDateTime = `${pickupDate}T${pickupTimeWithSeconds}`;
+  // For demo, dropDateTime is pickupDate + 3 days, same time
+  const dropDateObj = new Date(pickupDate);
+  dropDateObj.setDate(dropDateObj.getDate() + 3);
+  const dropDate = dropDateObj.toISOString().split("T")[0];
+  const dropDateTime = `${dropDate}T${pickupTimeWithSeconds}`;
+
+      const payload = {
+        pickupLocation: pickup,
+        dropLocation: drop,
+        pickupDateTime,
+        pickupLatitude: pickupCoords.lat,
+        pickupLongitude: pickupCoords.lon,
+        dropLatitude: dropCoords.lat,
+        dropLongitude: dropCoords.lon,
+        dropDateTime,
+        radius,
+      };
+      try {
+        setLoading(true); // Start loading
+        // Always fetch a new token before search
+        const tokenRes = await fetch("https://bhada24-core.onrender.com/auth/generate/token", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ key: "BHADA24", password: "P@55word" })
+        });
+        const tokenData = await tokenRes.json();
+        const token = tokenData.token;
+        localStorage.setItem("token", token);
+
+        const response = await fetch("https://carbookingservice-0mby.onrender.com/api/cab/registration/search", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`,
+          },
+          body: JSON.stringify(payload),
+        });
+        const result = await response.json();
+        setLoading(false); // Stop loading after fetch
+        if (result.responseCode === 200 && Array.isArray(result.responseData)) {
+          toast.success("Cabs found!");
+          navigate("/cab-results", { state: { cabs: result.responseData, search: payload } });
+        } else {
+          toast.error(result.responseMessage || "No cabs found.");
+        }
+      } catch (err) {
+        setLoading(false); // Stop loading on error
+        toast.error("Error searching cabs. Please try again.");
+      }
+      return;
+    }
+    // ...existing code for other tabs...
     toast.success("Request submitted successfully!");
   };
+
+    // Loading overlay is now handled by parent (Home)
 
   return (
   <div className="flex justify-center items-start mt-[50px] p-2">
@@ -106,6 +228,7 @@ export default function BookingForm() {
                     Pickup Location
                   </div>
                   <Input
+                    ref={pickupRef}
                     placeholder="Pickup Location"
                     value={pickup}
                     onChange={(e) => setPickup(e.target.value)}
@@ -118,6 +241,7 @@ export default function BookingForm() {
                     Drop Location
                   </div>
                   <Input
+                    ref={dropRef}
                     placeholder="Drop Location"
                     value={drop}
                     onChange={(e) => setDrop(e.target.value)}

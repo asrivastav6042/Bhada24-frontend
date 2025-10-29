@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { Filter } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -11,33 +11,56 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import cabsData from "@/data/cabs.json";
 
 const CabResults = () => {
+
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const location = useLocation();
   const [bookingType, setBookingType] = useState("normal");
   const [priceRange, setPriceRange] = useState([10, 25]);
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
   const [selectedSeats, setSelectedSeats] = useState<string[]>([]);
   const [acOnly, setAcOnly] = useState(false);
 
-  const from = searchParams.get("from");
-  const to = searchParams.get("to");
-  const date = searchParams.get("date");
+  // Get cabs and search info from location.state
+  const cabs = location.state?.cabs || [];
+  const search = location.state?.search || {};
+  const from = search.pickupLocation || "";
+  const to = search.dropLocation || "";
+  const date = search.pickupDateTime || "";
+
+  // Dynamic filter options based on result data
+  const cabTypes: string[] = Array.from(new Set((cabs as any[]).map(cab => cab.cabType).filter(Boolean))) as string[];
+  const seatOptions: string[] = Array.from(new Set(
+    (cabs as any[]).flatMap(cab => String(cab.cabCapacity).split('/'))
+  )) as string[];
+  const ratingOptions = Array.from(new Set((cabs as any[]).map(cab => cab.ratingAvarage).filter(Boolean)));
+  const minFare = Math.min(...(cabs as any[]).map(cab => cab.perKmRate ?? 0));
+  const maxFare = Math.max(...(cabs as any[]).map(cab => cab.perKmRate ?? 0));
 
   const filteredCabs = useMemo(() => {
-    return cabsData.filter((cab) => {
-      if (cab.pricePerKm < priceRange[0] || cab.pricePerKm > priceRange[1]) return false;
-      if (selectedTypes.length > 0 && !selectedTypes.includes(cab.type)) return false;
-      if (selectedSeats.length > 0 && !selectedSeats.includes(cab.seats.toString())) return false;
+    return cabs.filter((cab) => {
+      // Price filter
+      if (cab.perKmRate < priceRange[0] || cab.perKmRate > priceRange[1]) return false;
+      // Cab type filter
+      if (selectedTypes.length > 0 && !selectedTypes.includes(cab.cabType)) return false;
+      // Seats filter (handles values like "7/8" or "5")
+      if (selectedSeats.length > 0) {
+        const cabSeats = String(cab.cabCapacity).split('/');
+        const seatMatch = selectedSeats.some(seat => cabSeats.includes(seat));
+        if (!seatMatch) return false;
+      }
+      // AC filter
       if (acOnly && !cab.ac) return false;
       return true;
     });
-  }, [priceRange, selectedTypes, selectedSeats, acOnly]);
+  }, [cabs, priceRange, selectedTypes, selectedSeats, acOnly]);
 
   const handleBookCab = (cabId: string) => {
-    const cab = cabsData.find((c) => c.id === cabId);
-    if (cab) {
-      navigate(`/review-booking?cabId=${cabId}&from=${from}&to=${to}&date=${date}`);
-    }
+    navigate('/review-booking', {
+      state: {
+        registrationId: cabId,
+        search: { from, to, date }
+      }
+    });
   };
 
   const FilterComponent = () => (
@@ -50,6 +73,11 @@ const CabResults = () => {
       setSelectedSeats={setSelectedSeats}
       acOnly={acOnly}
       setAcOnly={setAcOnly}
+      cabTypes={cabTypes}
+      seatOptions={seatOptions}
+      ratingOptions={ratingOptions}
+      minFare={minFare}
+      maxFare={maxFare}
     />
   );
 
@@ -68,7 +96,7 @@ const CabResults = () => {
         </div>
 
         {/* Booking Type Tabs */}
-        <div className="mb-6">
+        {/* <div className="mb-6">
           <Tabs value={bookingType} onValueChange={setBookingType} className="w-full">
             <TabsList className="w-full sm:w-auto grid grid-cols-2 sm:inline-flex">
               <TabsTrigger value="normal" className="text-sm sm:text-base">
@@ -79,7 +107,7 @@ const CabResults = () => {
               </TabsTrigger>
             </TabsList>
           </Tabs>
-        </div>
+        </div> */}
 
         <div className="flex gap-6">
           {/* Desktop Sidebar */}
@@ -114,9 +142,26 @@ const CabResults = () => {
             {/* Cab Grid */}
             {filteredCabs.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                {filteredCabs.map((cab) => (
-                  <CabCard key={cab.id} cab={cab} onBook={handleBookCab} />
-                ))}
+                {filteredCabs.map((cab) => {
+                  // Map API cab fields to CabCard props
+                  // Use COLORS.primary for color values if needed
+                  const mappedCab = {
+                    id: cab.cabRegistrationId?.toString() || cab.id || '',
+                    name: cab.cabName || cab.name || '',
+                    type: cab.cabType || cab.type || '',
+                    image: cab.cabImageUrl || cab.image || '',
+                    seats: cab.cabCapacity || cab.seats || '',
+                    ac: cab.ac ?? false,
+                    pricePerKm: cab.perKmRate ?? cab.pricePerKm ?? '',
+                    basePrice: cab.fare ?? cab.basePrice ?? '',
+                    rating: cab.ratingAvarage ?? cab.rating ?? '',
+                    regNo: cab.cabRegistrationNumber || cab.regNo || '',
+                    primaryColor: '#199675', // Green
+                  };
+                  return (
+                    <CabCard key={mappedCab.id} cab={mappedCab} onBook={handleBookCab} />
+                  );
+                })}
               </div>
             ) : (
               <div className="text-center py-16">

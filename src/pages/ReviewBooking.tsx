@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
-import { Car, MapPin, Calendar, User, Mail, Phone, CreditCard, Star, Shield, Clock, Fuel, IndianRupee } from "lucide-react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { Car, MapPin, Calendar, User, CreditCard, Star, Shield, Clock, Fuel, IndianRupee } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -11,21 +11,19 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import cabsData from "@/data/cabs.json";
+import axios from "axios";
+import { getProfileByMobile } from "@/services/userService";
 
 const ReviewBooking = () => {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const location = useLocation();
+  const { registrationId, search } = location.state || {};
+  const [cabDetails, setCabDetails] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState("");
   const [processing, setProcessing] = useState(false);
-
-  const cabId = searchParams.get("cabId");
-  const from = searchParams.get("from");
-  const to = searchParams.get("to");
-  const date = searchParams.get("date");
-
-  const cab = cabsData.find((c) => c.id === cabId);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -34,42 +32,94 @@ const ReviewBooking = () => {
   });
 
   useEffect(() => {
-    if (!cab || !from || !to || !date) {
-      toast.error("Missing booking information");
-      navigate("/");
+    if (registrationId) {
+      const token = localStorage.getItem("token");
+      axios.get(`https://carbookingservice-0mby.onrender.com/api/cab/registration/get/${registrationId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+        .then(res => {
+          setCabDetails(res.data.responseData[0]);
+          setLoading(false);
+        })
+        .catch(() => {
+          setError("Failed to fetch cab details.");
+          setLoading(false);
+        });
+    } else {
+      setError("Missing booking information");
+      setLoading(false);
     }
-  }, [cab, from, to, date, navigate]);
 
-  if (!cab || !from || !to || !date) return null;
+    // Fetch logged-in user info and set form fields
+    const phone = localStorage.getItem("userPhone") || sessionStorage.getItem("userPhone");
+    if (phone) {
+      getProfileByMobile(phone).then((user) => {
+        if (user) {
+          setFormData({
+            name: user.name || "",
+            phone: user.phone || "",
+            email: user.email || "",
+          });
+        }
+      });
+    }
+  }, [registrationId]);
 
+  if (loading) return (
+    <div className="min-h-screen flex items-center justify-center bg-white">
+      <div className="flex flex-col items-center gap-4">
+        <svg className="animate-spin h-10 w-10 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+        </svg>
+        <span className="text-lg font-semibold text-primary">Loading booking details...</span>
+      </div>
+    </div>
+  );
+  if (error) {
+    toast.error(error);
+    return null;
+  }
+  if (!cabDetails) return null;
+
+  // Use API cab details
+  const cab = cabDetails.cab;
+  const from = search?.from || "";
+  const to = search?.to || "";
+  const date = search?.date || "";
+
+  // Fallbacks for template
+  const cabImages = [cab.cabImageUrl];
   const estimatedDistance = 100; // Mock distance
-  const baseFare = cab.basePrice + cab.pricePerKm * estimatedDistance;
+  const baseFare = cabDetails.baseFare + cabDetails.perKmRate * estimatedDistance;
   const gst = baseFare * 0.18;
   const totalFare = baseFare + gst;
+  const estimatedTravelTime = 13.5;
+  const tripType = "Round Trip";
 
-  const handlePayment = (method: string, isAdvance: boolean) => {
+  const handlePayment = (method, isAdvance) => {
     if (!formData.name || !formData.phone || !formData.email) {
       toast.error("Please fill in all traveller details");
       return;
     }
-
     setPaymentMethod(method);
     setShowPaymentModal(true);
   };
 
   const processPayment = () => {
     setProcessing(true);
-
     setTimeout(() => {
       const bookingId = `BT${Date.now().toString().slice(-8)}`;
       const bookingData = {
         bookingId,
-        cabName: cab.name,
-        cabType: cab.type,
-        regNo: cab.regNo,
-        from: from || "",
-        to: to || "",
-        date: date || "",
+        cabName: cab.cabName,
+        cabType: cab.cabType,
+        regNo: cab.cabNumber,
+        from,
+        to,
+        date,
         passengerName: formData.name,
         passengerPhone: formData.phone,
         passengerEmail: formData.email,
@@ -79,32 +129,22 @@ const ReviewBooking = () => {
         paymentMethod,
         paymentDate: new Date().toLocaleDateString(),
       };
-
-      // Store in sessionStorage for receipt page
       sessionStorage.setItem("bookingData", JSON.stringify(bookingData));
-
       toast.success("Payment successful! Redirecting...");
       setProcessing(false);
       setShowPaymentModal(false);
-
       setTimeout(() => {
         navigate("/receipt");
       }, 1000);
     }, 2000);
   };
 
-  const cabImages = cab.images || [cab.image];
-  const estimatedTravelTime = 13.5;
-  const tripType = searchParams.get("tripType") || "Round Trip";
-
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
-
       <div className="container py-4 sm:py-6 md:py-8 flex-1 px-4">
         <div className="max-w-7xl mx-auto">
           <h1 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6 md:mb-8">Review Your Booking</h1>
-
           <div className="grid lg:grid-cols-3 gap-6">
             {/* Left Column - Cab & Trip Details */}
             <div className="lg:col-span-2 space-y-6">
@@ -118,7 +158,7 @@ const ReviewBooking = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="grid md:grid-cols-5 gap-6">
-                     {/* Image Carousel */}
+                    {/* Image Carousel */}
                     <div className="md:col-span-2">
                       <Carousel className="w-full">
                         <CarouselContent>
@@ -126,7 +166,7 @@ const ReviewBooking = () => {
                             <CarouselItem key={index}>
                               <img
                                 src={image}
-                                alt={`${cab.name} view ${index + 1}`}
+                                alt={`${cab.cabName} view ${index + 1}`}
                                 className="w-full h-40 sm:h-48 object-cover rounded-lg"
                               />
                             </CarouselItem>
@@ -135,7 +175,6 @@ const ReviewBooking = () => {
                         <CarouselPrevious className="left-1 sm:left-2" />
                         <CarouselNext className="right-1 sm:right-2" />
                       </Carousel>
-                      
                       {/* Thumbnail Preview */}
                       <div className="flex gap-1.5 sm:gap-2 mt-2 sm:mt-3">
                         {cabImages.slice(0, 4).map((image, index) => (
@@ -148,46 +187,42 @@ const ReviewBooking = () => {
                         ))}
                       </div>
                     </div>
-
                     {/* Cab Information */}
                     <div className="md:col-span-3 space-y-3 sm:space-y-4">
                       <div>
-                        <h3 className="font-bold text-xl sm:text-2xl mb-2">{cab.name}</h3>
+                        <h3 className="font-bold text-xl sm:text-2xl mb-2">{cab.cabName}</h3>
                         <p className="text-xs sm:text-sm text-muted-foreground">
-                          {cab.type} • {cab.ac ? "AC" : "Non-AC"} • {cab.seats} Seats • Model: {cab.model || "2023"} • Color: {cab.color || "Silver"}
+                          {cab.cabType} • {cab.ac ? "AC" : "Non-AC"} • {cab.cabCapacity} Seats • Model: {cab.cabManufacturingYear} • Color: {cab.cabColor}
                         </p>
                       </div>
-
                       {/* Rating */}
                       <div className="flex items-center gap-2">
                         <div className="flex items-center gap-1 bg-primary/10 px-2 py-1 rounded">
                           <Star className="h-4 w-4 fill-primary text-primary" />
-                          <span className="font-semibold">{cab.rating || 5.0}</span>
+                          <span className="font-semibold">{cabDetails.ratingAvarage || 5.0}</span>
                         </div>
                         <span className="text-sm text-muted-foreground">
-                          ({cab.reviewsCount || 1} reviews)
+                          (1 review)
                         </span>
                       </div>
-
                       {/* Value Badge */}
                       <Badge variant="secondary" className="w-fit">
                         Value for money
                       </Badge>
-
                       {/* Key Details Grid */}
                       <div className="grid grid-cols-2 gap-3 pt-2">
                         <div className="flex items-center gap-2 text-sm">
                           <IndianRupee className="h-4 w-4 text-primary" />
                           <div>
                             <p className="text-xs text-muted-foreground">Extra km fare</p>
-                            <p className="font-medium">INR {cab.pricePerKm} per km</p>
+                            <p className="font-medium">INR {cabDetails.perKmRate} per km</p>
                           </div>
                         </div>
                         <div className="flex items-center gap-2 text-sm">
                           <Fuel className="h-4 w-4 text-primary" />
                           <div>
                             <p className="text-xs text-muted-foreground">Fuel Type</p>
-                            <p className="font-medium">{cab.fuelType || "Petrol"}</p>
+                            <p className="font-medium">{cab.fluelType}</p>
                           </div>
                         </div>
                         <div className="flex items-center gap-2 text-sm">
@@ -201,22 +236,21 @@ const ReviewBooking = () => {
                           <Shield className="h-4 w-4 text-primary" />
                           <div>
                             <p className="text-xs text-muted-foreground">Insurance</p>
-                            <p className="font-medium">{cab.insurance ? "YES" : "NO"}</p>
+                            <p className="font-medium">{cab.cabInsurance}</p>
                           </div>
                         </div>
                       </div>
-
                       {/* Additional Info */}
-                      <div className="pt-2 space-y-1 text-sm">
-                        <p><span className="font-medium">Registration:</span> {cab.regNo}</p>
-                        <p><span className="font-medium">Toll tax:</span> {cab.tollTax ? "Included" : "Not included"}</p>
+                      {/* <div className="pt-2 space-y-1 text-sm">
+                        <p><span className="font-medium">Registration:</span> {cab.cabNumber}</p>
+                        <p><span className="font-medium">Driver:</span> {cabDetails.driverName}</p>
+                        <p><span className="font-medium">Contact:</span> {cabDetails.driverContact}</p>
                         <p><span className="font-medium">Trip Type:</span> {tripType}</p>
-                      </div>
+                      </div> */}
                     </div>
                   </div>
                 </CardContent>
               </Card>
-
               {/* Trip Details */}
               <Card>
                 <CardHeader>
@@ -243,7 +277,6 @@ const ReviewBooking = () => {
                   </div>
                 </CardContent>
               </Card>
-
               {/* Traveller Details Form */}
               <Card>
                 <CardHeader>
@@ -284,7 +317,6 @@ const ReviewBooking = () => {
                 </CardContent>
               </Card>
             </div>
-
             {/* Right Column - Payment Summary (Sticky) */}
             <div className="lg:col-span-1">
               <Card className="sticky top-4">
@@ -309,7 +341,6 @@ const ReviewBooking = () => {
                       <span className="text-primary">₹{totalFare.toFixed(2)}</span>
                     </div>
                   </div>
-
                   <div className="space-y-3 pt-4">
                     <Button
                       size="lg"
@@ -333,7 +364,6 @@ const ReviewBooking = () => {
           </div>
         </div>
       </div>
-
       {/* Payment Modal */}
       <Dialog open={showPaymentModal} onOpenChange={setShowPaymentModal}>
         <DialogContent>
@@ -377,7 +407,6 @@ const ReviewBooking = () => {
                 <span>Net Banking</span>
               </div>
             </Button>
-
             <Button
               size="lg"
               className="w-full gradient-hero mt-6"
@@ -389,7 +418,6 @@ const ReviewBooking = () => {
           </div>
         </DialogContent>
       </Dialog>
-
       <Footer />
     </div>
   );

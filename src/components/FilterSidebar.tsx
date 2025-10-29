@@ -12,6 +12,11 @@ interface FilterSidebarProps {
   setSelectedSeats: (seats: string[]) => void;
   acOnly: boolean;
   setAcOnly: (ac: boolean) => void;
+  cabTypes: string[];
+  seatOptions: string[];
+  ratingOptions: any[];
+  minFare: number;
+  maxFare: number;
 }
 
 const FilterSidebar = ({
@@ -23,9 +28,12 @@ const FilterSidebar = ({
   setSelectedSeats,
   acOnly,
   setAcOnly,
+  cabTypes,
+  seatOptions,
+  ratingOptions,
+  minFare,
+  maxFare,
 }: FilterSidebarProps) => {
-  const cabTypes = ["Sedan", "SUV", "MUV"];
-  const seatOptions = ["4", "5", "6", "7"];
 
   const toggleType = (type: string) => {
     setSelectedTypes(
@@ -44,7 +52,7 @@ const FilterSidebar = ({
   };
 
   return (
-    <Card className="p-6 space-y-6 sticky top-20">
+  <Card className="p-6 space-y-6 sticky top-20">
       <div>
         <h3 className="font-semibold text-lg mb-4">Filters</h3>
       </div>
@@ -60,6 +68,7 @@ const FilterSidebar = ({
             max={25}
             step={1}
             className="mb-3"
+            style={{ '--color-primary': '#199675' } as React.CSSProperties}
           />
           <div className="flex justify-between text-sm text-muted-foreground">
             <span>₹{priceRange[0]}</span>
@@ -78,10 +87,12 @@ const FilterSidebar = ({
                 id={type}
                 checked={selectedTypes.includes(type)}
                 onCheckedChange={() => toggleType(type)}
+                style={{ borderColor: '#199675', color: '#199675' }}
               />
               <label
                 htmlFor={type}
                 className="text-sm cursor-pointer leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                style={{ color: '#199675' }}
               >
                 {type}
               </label>
@@ -100,10 +111,12 @@ const FilterSidebar = ({
                 id={`seats-${seats}`}
                 checked={selectedSeats.includes(seats)}
                 onCheckedChange={() => toggleSeats(seats)}
+                style={{ borderColor: '#199675', color: '#199675' }}
               />
               <label
                 htmlFor={`seats-${seats}`}
                 className="text-sm cursor-pointer leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                style={{ color: '#199675' }}
               >
                 {seats} Seater
               </label>
