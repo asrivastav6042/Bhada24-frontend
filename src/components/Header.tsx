@@ -1,3 +1,4 @@
+import { COLORS } from "@/styles/colors";
 import { Car, Menu, X, User, LogOut, Bell } from "lucide-react";
 import { useState, useEffect } from "react";
 import api from '@/apiconfig/api';
@@ -77,8 +78,8 @@ const Header = () => {
     <header className="sticky top-0 z-50 w-full border-b bg-background">
       <div className="container flex h-16 items-center justify-between">
         <Link to="/" className="flex items-center gap-2 font-bold text-xl md:text-2xl">
-          <Car className="h-6 w-6 md:h-8 md:w-8 text-primary" />
-          <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+          <Car className="h-6 w-6 md:h-8 md:w-8" style={{ color: COLORS.primary }} />
+          <span style={{ color: COLORS.primary }}>
             bhada24
           </span>
         </Link>
@@ -87,25 +88,28 @@ const Header = () => {
         <nav className="hidden md:flex items-center gap-6">
           <Link 
             to="/?service=cabs" 
-            className={`text-sm font-medium transition-colors hover:text-primary ${
-              activeService === "cabs" ? "text-primary font-semibold" : ""
+            className={`text-sm font-bold transition-colors hover:text-primary ${
+              activeService === "cabs" ? "font-semibold" : ""
             }`}
+            style={activeService === "cabs" ? { color: '#222', borderBottom: `2px solid ${COLORS.primary}`, paddingBottom: '2px' } : {}}
           >
             Cabs
           </Link>
           <Link 
             to="/?service=dj-sound" 
-            className={`text-sm font-medium transition-colors hover:text-primary ${
-              activeService === "dj-sound" ? "text-primary font-semibold" : ""
+            className={`text-sm font-bold transition-colors hover:text-primary ${
+              activeService === "dj-sound" ? "font-semibold" : ""
             }`}
+            style={activeService === "dj-sound" ? { color: '#222', borderBottom: `2px solid ${COLORS.primary}`, paddingBottom: '2px' } : {}}
           >
             DJ & Sound
           </Link>
           <Link 
             to="/?service=event" 
-            className={`text-sm font-medium transition-colors hover:text-primary ${
-              activeService === "event" ? "text-primary font-semibold" : ""
+            className={`text-sm font-bold transition-colors hover:text-primary ${
+              activeService === "event" ? "font-semibold" : ""
             }`}
+            style={activeService === "event" ? { color: '#222', borderBottom: `2px solid ${COLORS.primary}`, paddingBottom: '2px' } : {}}
           >
             Event Management
           </Link>
@@ -123,7 +127,7 @@ const Header = () => {
             >
               <Bell className="h-6 w-6" />
               {notifications && notifications.length > 0 && (
-                <span className="absolute -top-0 -right-0 inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-semibold leading-none text-white bg-red-600 rounded-full">
+                <span className="absolute -top-0 -right-0 inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-semibold leading-none text-white" style={{ backgroundColor: COLORS.primary }}>
                   {notifications.filter(n => !n.read).length}
                 </span>
               )}

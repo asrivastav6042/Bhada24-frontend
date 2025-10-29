@@ -1,240 +1,320 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { MapPin, Calendar, Clock, Package, Search } from "lucide-react";
-import { Button } from "./ui/button";
-import { Input } from "./ui/input";
-import { Label } from "./ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
-import cities from "@/data/cities.json";
+import {
+  MapPin,
+  Calendar,
+  Clock,
+  Timer,
+  Car,
+  Bus,
+  Lightbulb,
+  Package,
+  Search,
+  MessageSquare,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
+import { COLORS } from "@/styles/colors";
 
-const BookingForm = () => {
-  const navigate = useNavigate();
-  const [tripType, setTripType] = useState("one-way");
-  const [pickupCity, setPickupCity] = useState("");
-  const [dropCity, setDropCity] = useState("");
+export default function BookingForm() {
+  const [activeTab, setActiveTab] = useState("cabs");
+
+  // Common fields
+  const [pickup, setPickup] = useState("");
+  const [drop, setDrop] = useState("");
   const [pickupDate, setPickupDate] = useState("");
   const [pickupTime, setPickupTime] = useState("");
-  const [packageType, setPackageType] = useState("");
+  const [travelTime, setTravelTime] = useState("");
+
+  // Transport-specific fields
+  const [goodsType, setGoodsType] = useState("");
+  const [vehicleSize, setVehicleSize] = useState("");
+
+  // Roadlight-specific fields
+  const [issueLocation, setIssueLocation] = useState("");
+  const [issueType, setIssueType] = useState("");
+  const [description, setDescription] = useState("");
 
   const handleSearch = () => {
-    if (tripType === "local") {
-      if (!pickupCity || !pickupDate || !pickupTime || !packageType) {
-        toast.error("Please fill in all required fields");
+    if (activeTab === "cabs") {
+      if (!pickup || !drop || !pickupDate || !pickupTime || !travelTime) {
+        toast.error("Please fill in all required fields for Cab Booking");
         return;
       }
-    } else {
-      if (!pickupCity || !dropCity || !pickupDate) {
-        toast.error("Please fill in all required fields");
+    } else if (activeTab === "transport") {
+      if (!pickup || !drop || !pickupDate || !goodsType || !vehicleSize) {
+        toast.error("Please fill in all required fields for Transport Booking");
+        return;
+      }
+    } else if (activeTab === "roadlights") {
+      if (!issueLocation || !issueType || !description) {
+        toast.error("Please fill in all required fields for Roadlight Issue");
         return;
       }
     }
 
-    navigate(`/cabs?from=${pickupCity}&to=${dropCity}&date=${pickupDate}&type=${tripType}`);
+    toast.success("Request submitted successfully!");
   };
 
   return (
-    <div className="bg-card rounded-2xl shadow-xl p-6 md:p-8 animate-fade-in">
-      {/* Trip Type Selection */}
-      <div className="mb-8">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-          <Button
-            type="button"
-            onClick={() => setTripType("one-way")}
-            className={`w-full py-5 sm:py-6 text-sm sm:text-base font-semibold rounded-xl transition-all ${
-              tripType === "one-way"
-                ? "bg-primary text-primary-foreground hover:bg-primary/90 border-0"
-                : "bg-transparent text-foreground hover:bg-muted/50 border-2 border-foreground shadow-none"
-            }`}
-          >
-            One Way
-          </Button>
-          <Button
-            type="button"
-            onClick={() => setTripType("round-trip")}
-            className={`w-full py-5 sm:py-6 text-sm sm:text-base font-semibold rounded-xl transition-all ${
-              tripType === "round-trip"
-                ? "bg-primary text-primary-foreground hover:bg-primary/90 border-0"
-                : "bg-transparent text-foreground hover:bg-muted/50 border-2 border-foreground shadow-none"
-            }`}
-          >
-            Round Trip
-          </Button>
-          <Button
-            type="button"
-            onClick={() => setTripType("local")}
-            className={`w-full py-5 sm:py-6 text-sm sm:text-base font-semibold rounded-xl transition-all ${
-              tripType === "local"
-                ? "bg-primary text-primary-foreground hover:bg-primary/90 border-0"
-                : "bg-transparent text-foreground hover:bg-muted/50 border-2 border-foreground shadow-none"
-            }`}
-          >
-            Local Rental
-          </Button>
+  <div className="flex justify-center items-start mt-[50px] p-2">
+      <div className="w-full max-w-5xl bg-white rounded-3xl shadow-2xl overflow-hidden">
+        {/* Tabs */}
+  <div className="flex justify-center" style={{ position: 'absolute', left: 0, right: 0, top: '-48px', zIndex: 10 }}>
+          <div className="bg-white shadow-lg flex items-center space-x-4 sm:space-x-8 py-3 px-6" style={{ minWidth: '340px', maxWidth: '520px' }}>
+            {[ 
+              { key: "cabs", label: "Cabs", icon: <Car className="h-5 w-5" style={{ color: COLORS.primary }} /> },
+              { key: "transport", label: "Transport", icon: <Bus className="h-5 w-5" style={{ color: COLORS.primary }} /> },
+              { key: "roadlights", label: "Roadlights", icon: <Lightbulb className="h-5 w-5" style={{ color: COLORS.primary }} /> },
+            ].map((tab) => (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className={`flex items-center gap-2 text-base sm:text-lg font-semibold transition-all ${
+                  activeTab === tab.key
+                    ? "border-b-2 pb-1"
+                    : "pb-1"
+                }`}
+                style={activeTab === tab.key
+                  ? { borderBottomColor: COLORS.primary, color: '#222' }
+                  : { color: '#222' }}
+              >
+                {tab.icon}
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Form Section */}
+  <div className="bg-gray-50 p-4 sm:p-6 rounded-b-3xl">
+          {/* Cabs Form */}
+          {activeTab === "cabs" && (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div>
+                  <div className="flex items-center gap-2 text-gray-700 font-medium mb-2">
+                    <MapPin className="h-5 w-5" style={{ color: COLORS.primary }} />
+                    Pickup Location
+                  </div>
+                  <Input
+                    placeholder="Pickup Location"
+                    value={pickup}
+                    onChange={(e) => setPickup(e.target.value)}
+                    className="h-12 rounded-xl"
+                  />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 text-gray-700 font-medium mb-2">
+                    <MapPin className="h-5 w-5" style={{ color: COLORS.primary }} />
+                    Drop Location
+                  </div>
+                  <Input
+                    placeholder="Drop Location"
+                    value={drop}
+                    onChange={(e) => setDrop(e.target.value)}
+                    className="h-12 rounded-xl"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+                <div>
+                  <div className="flex items-center gap-2 text-gray-700 font-medium mb-2">
+                    <Calendar className="h-5 w-5" style={{ color: COLORS.primary }} />
+                    Pickup Date
+                  </div>
+                  <Input
+                    type="date"
+                    value={pickupDate}
+                    onChange={(e) => setPickupDate(e.target.value)}
+                    min={new Date().toISOString().split("T")[0]}
+                    className="h-12 rounded-xl"
+                  />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 text-gray-700 font-medium mb-2">
+                    <Clock className="h-5 w-5" style={{ color: COLORS.primary }} />
+                    Pickup Time
+                  </div>
+                  <Input
+                    type="time"
+                    value={pickupTime}
+                    onChange={(e) => setPickupTime(e.target.value)}
+                    className="h-12 rounded-xl"
+                  />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 text-gray-700 font-medium mb-2">
+                    <Timer className="h-5 w-5" style={{ color: COLORS.primary }} />
+                    Travel Time
+                  </div>
+                  <Select value={travelTime} onValueChange={setTravelTime}>
+                    <SelectTrigger className="h-12 rounded-xl">
+                      <SelectValue placeholder="Select" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1hr">1 Hour</SelectItem>
+                      <SelectItem value="2hr">2 Hours</SelectItem>
+                      <SelectItem value="3hr">3 Hours</SelectItem>
+                      <SelectItem value="custom">Custom Duration</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Transport Form */}
+          {activeTab === "transport" && (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div>
+                  <div className="flex items-center gap-2 text-gray-700 font-medium mb-2">
+                    <MapPin className="h-5 w-5 text-blue-500" />
+                    Pickup Location
+                  </div>
+                  <Input
+                    placeholder="Pickup Warehouse or Address"
+                    value={pickup}
+                    onChange={(e) => setPickup(e.target.value)}
+                    className="h-12 rounded-xl"
+                  />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 text-gray-700 font-medium mb-2">
+                    <MapPin className="h-5 w-5" style={{ color: COLORS.primary }} />
+                    Drop Location
+                  </div>
+                  <Input
+                    placeholder="Drop Warehouse or Address"
+                    value={drop}
+                    onChange={(e) => setDrop(e.target.value)}
+                    className="h-12 rounded-xl"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+                <div>
+                  <div className="flex items-center gap-2 text-gray-700 font-medium mb-2">
+                    <Package className="h-5 w-5 text-orange-600" />
+                    Goods Type
+                  </div>
+                  <Select value={goodsType} onValueChange={setGoodsType}>
+                    <SelectTrigger className="h-12 rounded-xl">
+                      <SelectValue placeholder="Select Goods Type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="fragile">Fragile</SelectItem>
+                      <SelectItem value="industrial">Industrial</SelectItem>
+                      <SelectItem value="perishable">Perishable</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 text-gray-700 font-medium mb-2">
+                    <Calendar className="h-5 w-5 text-green-600" />
+                    Pickup Date
+                  </div>
+                  <Input
+                    type="date"
+                    value={pickupDate}
+                    onChange={(e) => setPickupDate(e.target.value)}
+                    min={new Date().toISOString().split("T")[0]}
+                    className="h-12 rounded-xl"
+                  />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 text-gray-700 font-medium mb-2">
+                    <Bus className="h-5 w-5 text-blue-600" />
+                    Vehicle Size
+                  </div>
+                  <Select value={vehicleSize} onValueChange={setVehicleSize}>
+                    <SelectTrigger className="h-12 rounded-xl">
+                      <SelectValue placeholder="Select Size" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="small">Small Van</SelectItem>
+                      <SelectItem value="medium">Medium Truck</SelectItem>
+                      <SelectItem value="large">Heavy Lorry</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Roadlights Form */}
+          {activeTab === "roadlights" && (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div>
+                  <div className="flex items-center gap-2 text-gray-700 font-medium mb-2">
+                    <MapPin className="h-5 w-5 text-yellow-500" />
+                    Issue Location
+                  </div>
+                  <Input
+                    placeholder="Enter Location"
+                    value={issueLocation}
+                    onChange={(e) => setIssueLocation(e.target.value)}
+                    className="h-12 rounded-xl"
+                  />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 text-gray-700 font-medium mb-2">
+                    <Lightbulb className="h-5 w-5 text-orange-500" />
+                    Issue Type
+                  </div>
+                  <Select value={issueType} onValueChange={setIssueType}>
+                    <SelectTrigger className="h-12 rounded-xl">
+                      <SelectValue placeholder="Select Issue Type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="flickering">Flickering Light</SelectItem>
+                      <SelectItem value="not-working">Not Working</SelectItem>
+                      <SelectItem value="damaged-pole">Damaged Pole</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="mb-10">
+                <div className="flex items-center gap-2 text-gray-700 font-medium mb-2">
+                  <MessageSquare className="h-5 w-5 text-blue-500" />
+                  Description
+                </div>
+                <Textarea
+                  placeholder="Describe the issue..."
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  className="rounded-xl"
+                />
+              </div>
+            </>
+          )}
+
+          {/* Submit Button */}
+          <div className="flex justify-center">
+            <Button
+              onClick={handleSearch}
+              style={{ background: COLORS.primary }}
+              className="flex items-center gap-2 hover:opacity-90 text-white font-semibold text-lg px-8 py-4 rounded-xl transition-all"
+            >
+              <Search className="h-5 w-5" style={{ color: '#fff' }} />
+              {activeTab === "roadlights" ? "SUBMIT REQUEST" : "SEARCH VEHICLE"}
+            </Button>
+          </div>
         </div>
       </div>
-
-      {/* Local Rental Form */}
-      {tripType === "local" && (
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Pickup Location */}
-            <div>
-              <Label className="flex items-center gap-2 mb-3 text-base font-semibold">
-                <MapPin className="h-5 w-5 text-primary" />
-                Pickup Location
-              </Label>
-              <Input
-                placeholder="Enter pickup location"
-                value={pickupCity}
-                onChange={(e) => setPickupCity(e.target.value)}
-                className="h-14 text-base"
-              />
-            </div>
-
-            {/* Pickup Date */}
-            <div>
-              <Label className="flex items-center gap-2 mb-3 text-base font-semibold">
-                <Calendar className="h-5 w-5 text-primary" />
-                Pickup Date
-              </Label>
-              <Input
-                type="date"
-                value={pickupDate}
-                onChange={(e) => setPickupDate(e.target.value)}
-                min={new Date().toISOString().split('T')[0]}
-                className="h-14 text-base"
-              />
-            </div>
-
-            {/* Pickup Time */}
-            <div>
-              <Label className="flex items-center gap-2 mb-3 text-base font-semibold">
-                <Clock className="h-5 w-5 text-primary" />
-                Pickup Time
-              </Label>
-              <Input
-                type="time"
-                value={pickupTime}
-                onChange={(e) => setPickupTime(e.target.value)}
-                className="h-14 text-base"
-              />
-            </div>
-
-            {/* Package */}
-            <div>
-              <Label className="flex items-center gap-2 mb-3 text-base font-semibold">
-                <Package className="h-5 w-5" />
-                Package
-              </Label>
-              <Select value={packageType} onValueChange={setPackageType}>
-                <SelectTrigger className="h-14 text-base">
-                  <SelectValue placeholder="Select package" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="4hrs-40km">4 Hours / 40 KM</SelectItem>
-                  <SelectItem value="8hrs-80km">8 Hours / 80 KM</SelectItem>
-                  <SelectItem value="12hrs-120km">12 Hours / 120 KM</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {/* Search Button */}
-          <Button 
-            className="w-full py-6 text-lg font-semibold rounded-xl bg-primary hover:bg-primary/90"
-            onClick={handleSearch}
-          >
-            Search Cabs
-          </Button>
-        </div>
-      )}
-
-      {/* One Way / Round Trip Form */}
-      {(tripType === "one-way" || tripType === "round-trip") && (
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* From City */}
-            <div>
-              <Label className="flex items-center gap-2 mb-3 text-base font-semibold">
-                <MapPin className="h-5 w-5 text-primary" />
-                From
-              </Label>
-              <Select value={pickupCity} onValueChange={setPickupCity}>
-                <SelectTrigger className="h-14 text-base">
-                  <SelectValue placeholder="Select City" />
-                </SelectTrigger>
-                <SelectContent>
-                  {cities.map((city) => (
-                    <SelectItem key={city} value={city}>
-                      {city}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* To City */}
-            <div>
-              <Label className="flex items-center gap-2 mb-3 text-base font-semibold">
-                <MapPin className="h-5 w-5 text-primary" />
-                To
-              </Label>
-              <Select value={dropCity} onValueChange={setDropCity}>
-                <SelectTrigger className="h-14 text-base">
-                  <SelectValue placeholder="Select City" />
-                </SelectTrigger>
-                <SelectContent>
-                  {cities.map((city) => (
-                    <SelectItem key={city} value={city}>
-                      {city}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Pickup Date */}
-            <div>
-              <Label className="flex items-center gap-2 mb-3 text-base font-semibold">
-                <Calendar className="h-5 w-5 text-primary" />
-                Departure Date
-              </Label>
-              <Input
-                type="date"
-                value={pickupDate}
-                onChange={(e) => setPickupDate(e.target.value)}
-                min={new Date().toISOString().split('T')[0]}
-                className="h-14 text-base"
-              />
-            </div>
-
-            {/* Pickup Time */}
-            <div>
-              <Label className="flex items-center gap-2 mb-3 text-base font-semibold">
-                <Clock className="h-5 w-5 text-primary" />
-                Pickup Time
-              </Label>
-              <Input
-                type="time"
-                value={pickupTime}
-                onChange={(e) => setPickupTime(e.target.value)}
-                className="h-14 text-base"
-              />
-            </div>
-          </div>
-
-          {/* Search Button */}
-          <Button 
-            className="w-full py-6 text-lg font-semibold rounded-xl bg-primary hover:bg-primary/90"
-            onClick={handleSearch}
-          >
-            Search Cabs
-          </Button>
-        </div>
-      )}
     </div>
   );
-};
-
-export default BookingForm;
+}
