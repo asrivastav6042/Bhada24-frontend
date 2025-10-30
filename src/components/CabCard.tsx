@@ -76,14 +76,6 @@ const CabCard = ({ cab, onBook }: CabCardProps) => {
         >
           Book Now
         </Button>
-        &nbsp;&nbsp;&nbsp;&nbsp;
-        <Button 
-          style={{ background: COLORS.kesariya }}
-          className="w-full hover:opacity-90 transition-opacity text-sm sm:text-base text-white"
-          onClick={() => onBook(cab.id)}
-        >
-          Add to Cart
-        </Button>
       </CardFooter>
     </Card>
   );

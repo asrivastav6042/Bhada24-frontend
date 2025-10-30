@@ -18,6 +18,8 @@ const ReviewBooking = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { registrationId, search } = location.state || {};
+  // Debug: log navigation state for troubleshooting
+  console.debug('ReviewBooking location.state:', location.state);
   const [cabDetails, setCabDetails] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -32,24 +34,30 @@ const ReviewBooking = () => {
   });
 
   useEffect(() => {
-    if (registrationId) {
-      const token = localStorage.getItem("token");
-      axios.get(`https://carbookingservice-0mby.onrender.com/api/cab/registration/get/${registrationId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      })
-        .then(res => {
-          setCabDetails(res.data.responseData[0]);
-          setLoading(false);
-        })
-        .catch(() => {
+  if (registrationId) {
+      (async () => {
+        try {
+          const { request, BASE_URL } = await import("@/apiconfig/api");
+          const token = localStorage.getItem("bhada24_token") || localStorage.getItem("token");
+          const apiUrl = `${BASE_URL}/api/cab/registration/get/${registrationId}`;
+          console.log('Fetching cab details:', { registrationId, apiUrl });
+          const res = await request(`/api/cab/registration/get/${registrationId}`, "GET", undefined, undefined, token);
+          if (Array.isArray(res?.responseData) && res.responseData.length > 0) {
+            setCabDetails(res.responseData[0]);
+          } else if (res?.responseData) {
+            setCabDetails(res.responseData);
+          } else {
+            setError("No cab details found.");
+          }
+        } catch (err) {
           setError("Failed to fetch cab details.");
+        } finally {
           setLoading(false);
-        });
+        }
+      })();
     } else {
-      setError("Missing booking information");
-      setLoading(false);
+  setError("Missing booking information. Please ensure you are booking from the cab results page and registrationId is passed in navigation state.");
+  setLoading(false);
     }
 
     // Fetch logged-in user info and set form fields
@@ -85,15 +93,15 @@ const ReviewBooking = () => {
   if (!cabDetails) return null;
 
   // Use API cab details
-  const cab = cabDetails.cab;
+  const cab = cabDetails.cabInfo || cabDetails.cab || cabDetails;
   const from = search?.from || "";
   const to = search?.to || "";
   const date = search?.date || "";
 
   // Fallbacks for template
-  const cabImages = [cab.cabImageUrl];
+  const cabImages = [cab.cabImageUrl || cab.image || ""];
   const estimatedDistance = 100; // Mock distance
-  const baseFare = cabDetails.baseFare + cabDetails.perKmRate * estimatedDistance;
+  const baseFare = (cabDetails.baseFare || 0) + (cabDetails.perKmRate || 0) * estimatedDistance;
   const gst = baseFare * 0.18;
   const totalFare = baseFare + gst;
   const estimatedTravelTime = 13.5;

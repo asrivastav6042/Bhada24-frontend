@@ -148,25 +148,15 @@ export default function BookingForm({ loading, setLoading }) {
       };
       try {
         setLoading(true); // Start loading
+        // Use api.ts helpers for token and API call
+        const { generateToken, request } = await import("@/apiconfig/api");
         // Always fetch a new token before search
-        const tokenRes = await fetch("https://bhada24-core.onrender.com/auth/generate/token", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ key: "BHADA24", password: "P@55word" })
-        });
-        const tokenData = await tokenRes.json();
+        const tokenData = await generateToken({ key: "BHADA24", password: "P@55word" });
         const token = tokenData.token;
-        localStorage.setItem("token", token);
+        localStorage.setItem("bhada24_token", token);
 
-        const response = await fetch("https://carbookingservice-0mby.onrender.com/api/cab/registration/search", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}`,
-          },
-          body: JSON.stringify(payload),
-        });
-        const result = await response.json();
+        // Use request helper for API call
+        const result = await request("/api/cab/registration/search", "POST", payload, undefined, token);
         setLoading(false); // Stop loading after fetch
         if (result.responseCode === 200 && Array.isArray(result.responseData)) {
           toast.success("Cabs found!");

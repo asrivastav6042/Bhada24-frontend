@@ -2,10 +2,8 @@
 // Extracted from OpenAPI spec at https://bhada24-core.onrender.com/v3/api-docs
 // Keeps a small, central place for HTTP calls used by the frontend.
 
-// Use relative URLs in development so the dev server proxy can forward requests and avoid CORS.
-export const BASE_URL = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.DEV)
-  ? ''
-  : 'https://bhada24-core.onrender.com';
+// Always use production backend URL for all environments
+export const BASE_URL = 'https://bhada24-core-4xlb.onrender.com';
 
 type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 

@@ -55,6 +55,12 @@ const CabResults = () => {
   }, [cabs, priceRange, selectedTypes, selectedSeats, acOnly]);
 
   const handleBookCab = (cabId: string) => {
+    // Debug: log cabId and navigation state
+    console.log('Book Now clicked. cabId:', cabId);
+    if (!cabId) {
+      alert('No cabId found for booking. Please contact support.');
+      return;
+    }
     navigate('/review-booking', {
       state: {
         registrationId: cabId,
@@ -145,17 +151,18 @@ const CabResults = () => {
                 {filteredCabs.map((cab) => {
                   // Map API cab fields to CabCard props
                   // Use COLORS.primary for color values if needed
+                  // Use id from cabs.json for cabId
                   const mappedCab = {
-                    id: cab.cabRegistrationId?.toString() || cab.id || '',
-                    name: cab.cabName || cab.name || '',
-                    type: cab.cabType || cab.type || '',
-                    image: cab.cabImageUrl || cab.image || '',
-                    seats: cab.cabCapacity || cab.seats || '',
+                    id: cab.id?.toString() || cab.cabId?.toString() || '',
+                    name: cab.name || cab.cabName || '',
+                    type: cab.type || cab.cabType || '',
+                    image: cab.image || cab.cabImageUrl || '',
+                    seats: cab.seats || cab.cabCapacity || '',
                     ac: cab.ac ?? false,
-                    pricePerKm: cab.perKmRate ?? cab.pricePerKm ?? '',
-                    basePrice: cab.fare ?? cab.basePrice ?? '',
-                    rating: cab.ratingAvarage ?? cab.rating ?? '',
-                    regNo: cab.cabRegistrationNumber || cab.regNo || '',
+                    pricePerKm: cab.pricePerKm ?? cab.perKmRate ?? '',
+                    basePrice: cab.basePrice ?? cab.fare ?? '',
+                    rating: cab.rating ?? cab.ratingAvarage ?? '',
+                    regNo: cab.regNo || cab.cabRegistrationNumber || '',
                     primaryColor: '#199675', // Green
                   };
                   return (
