@@ -6,6 +6,7 @@ import { getLocalNotifications, markNotificationRead } from '@/services/fcmServi
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "./ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
+import LoginModal from "./LoginModal";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,6 +18,7 @@ import {
 
 const Header = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userName, setUserName] = useState<string | null>(null);
   const [userPhone, setUserPhone] = useState<string | null>(null);
@@ -164,15 +166,18 @@ const Header = () => {
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => navigate('/login')}
-              className="gap-2"
-            >
-              <User className="h-4 w-4" />
-              Login
-            </Button>
+            <>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setShowLoginModal(true)}
+                className="gap-2"
+              >
+                <User className="h-4 w-4" />
+                Login
+              </Button>
+              <LoginModal open={showLoginModal} onClose={() => setShowLoginModal(false)} />
+            </>
           )}
         </div>
 
@@ -255,18 +260,21 @@ const Header = () => {
                   </Button>
                 </>
               ) : (
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => {
-                    setMobileMenuOpen(false);
-                    navigate('/login');
-                  }}
-                  className="gap-2 w-full"
-                >
-                  <User className="h-4 w-4" />
-                  Login
-                </Button>
+                <>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      setShowLoginModal(true);
+                    }}
+                    className="gap-2 w-full"
+                  >
+                    <User className="h-4 w-4" />
+                    Login
+                  </Button>
+                  <LoginModal open={showLoginModal} onClose={() => setShowLoginModal(false)} />
+                </>
               )}
             </div>
           </nav>

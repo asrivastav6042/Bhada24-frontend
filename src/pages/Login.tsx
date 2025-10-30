@@ -13,6 +13,16 @@ import Header from "@/components/Header";
 
 const Login = () => {
   const navigate = useNavigate();
+  // On mount, if no redirectAfterLogin is set, set it to previous page
+  // Only set if not already set, so it works for direct login page too
+  if (!localStorage.getItem('redirectAfterLogin')) {
+    try {
+      const prevPath = window.location.pathname;
+      if (prevPath !== '/login') {
+        localStorage.setItem('redirectAfterLogin', prevPath);
+      }
+    } catch (e) {}
+  }
   const [step, setStep] = useState<"phone" | "otp">("phone");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [otp, setOtp] = useState("");
@@ -89,7 +99,16 @@ const Login = () => {
         try { sessionStorage.setItem('userId', String(uid)); } catch (e) {}
       }
       toast.success('Login successful!');
-      navigate('/dashboard');
+      // Redirect to saved path if available, else dashboard
+      let redirectPath = '/dashboard';
+      try {
+        const stored = localStorage.getItem('redirectAfterLogin');
+        if (stored && stored !== '/login') {
+          redirectPath = stored;
+        }
+        localStorage.removeItem('redirectAfterLogin');
+      } catch (e) {}
+      navigate(redirectPath);
     } catch (err: any) {
       console.error('verifyOtp error', err);
       const msg = err?.code === 'auth/invalid-verification-code' || err?.message?.includes('INVALID_CODE')
