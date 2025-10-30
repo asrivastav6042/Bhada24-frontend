@@ -21,6 +21,18 @@ interface CabCardProps {
 }
 
 const CabCard = ({ cab, onBook }: CabCardProps) => {
+  // Add to Cart handler
+  const handleAddToCart = () => {
+    // Get existing cart from localStorage
+    const cart = JSON.parse(localStorage.getItem('cabCart') || '[]');
+    // Avoid duplicates
+    if (!cart.find((item: any) => item.id === cab.id)) {
+      cart.push(cab);
+      localStorage.setItem('cabCart', JSON.stringify(cart));
+      // Notify other components immediately
+      window.dispatchEvent(new Event('cabCartUpdated'));
+    }
+  };
   return (
     <Card className="overflow-hidden hover:shadow-lg transition-all duration-300 animate-fade-in group">
       <div className="relative overflow-hidden">
@@ -71,11 +83,19 @@ const CabCard = ({ cab, onBook }: CabCardProps) => {
       <CardFooter className="p-4 sm:p-5 pt-0">
         <Button 
           style={{ background: COLORS.primary }}
-          className="w-full hover:opacity-90 transition-opacity text-sm sm:text-base text-white"
+          className="w-full hover:opacity-90 transition-opacity text-sm sm:text-base text-white mb-2"
           onClick={() => onBook(cab.id)}
         >
           Book Now
+        </Button>&nbsp;&nbsp;&nbsp;
+        <Button 
+          style={{ background: 'rgba(235, 11, 11, 1)' }}
+          className="w-full hover:opacity-90 transition-opacity text-sm sm:text-base text-white mb-2"
+          onClick={handleAddToCart}
+        >
+          Add to Cart
         </Button>
+        
       </CardFooter>
     </Card>
   );

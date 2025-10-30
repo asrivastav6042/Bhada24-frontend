@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { Filter } from "lucide-react";
 import Header from "@/components/Header";
@@ -11,6 +11,52 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import cabsData from "@/data/cabs.json";
 
 const CabResults = () => {
+  // Floating cart button state and logic
+  const [cartCount, setCartCount] = useState(0);
+  useEffect(() => {
+    const updateCount = () => {
+      const stored = localStorage.getItem("cabCart");
+      setCartCount(stored ? JSON.parse(stored).length : 0);
+    };
+    updateCount();
+    window.addEventListener("storage", updateCount);
+    window.addEventListener("cabCartUpdated", updateCount);
+    return () => {
+      window.removeEventListener("storage", updateCount);
+      window.removeEventListener("cabCartUpdated", updateCount);
+    };
+  }, []);
+
+  // Floating cart button component
+  const FloatingCartButton = () => (
+    <button
+      onClick={() => navigate('/cart')}
+      style={{
+        position: 'fixed',
+        right: '2rem',
+        bottom: '2rem',
+        zIndex: 1000,
+        background: '#2563eb',
+        color: 'white',
+        borderRadius: '50%',
+        width: '64px',
+        height: '64px',
+        boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: '1.2rem',
+        border: 'none',
+        cursor: 'pointer',
+        transition: 'background 0.2s',
+      }}
+      aria-label={`View cart (${cartCount})`}
+    >
+      <span style={{ fontWeight: 'bold', fontSize: '1.5rem' }}>{cartCount}</span>
+      <span style={{ fontSize: '0.8rem' }}>Cart</span>
+    </button>
+  );
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -182,6 +228,7 @@ const CabResults = () => {
       </div>
 
       <Footer />
+      <FloatingCartButton />
     </div>
   );
 };
