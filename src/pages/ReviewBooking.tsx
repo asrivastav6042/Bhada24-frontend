@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { Badge } from "@/components/ui/badge";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { toast } from "sonner";
 import axios from "axios";
 import { getProfileByMobile } from "@/services/userService";
@@ -33,6 +34,30 @@ interface Offer {
   promoEndDate: string;
 }
 
+/**
+ * Calculate new fare breakdown with coupon, GST on final amount, and token logic
+ */
+const calculateNewFareBreakdown = (baseFare: number, couponDiscount: number = 0) => {
+  const finalAmount = Math.max(0, baseFare - couponDiscount);
+  const gstAmount = +(finalAmount * 0.05).toFixed(2); // 5% GST
+  const totalWithGst = +(finalAmount + gstAmount).toFixed(2);
+  
+  // Token: (finalAmount × 0.05) + (finalAmount × 0.12) + ((finalAmount × 0.12) × 0.18)
+  const tokenBase = finalAmount * 0.05;
+  const token12 = finalAmount * 0.12;
+  const token12gst = token12 * 0.18;
+  const tokenAmount = Math.round(tokenBase + token12 + token12gst);
+  
+  return {
+    baseFare,
+    couponDiscount,
+    finalAmount,
+    gstAmount,
+    totalWithGst,
+    tokenAmount
+  };
+};
+
 const ReviewBooking = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -52,6 +77,9 @@ const ReviewBooking = () => {
   const [appliedCoupon, setAppliedCoupon] = useState<Offer | null>(null);
   const [showOffers, setShowOffers] = useState(false);
   const { execute: fetchOffersApi } = useApiCall();
+  
+  // Payment type: "token" or "full"
+  const [paymentType, setPaymentType] = useState<"token" | "full">("full");
 
   const [formData, setFormData] = useState({
     name: "",
@@ -206,19 +234,27 @@ const ReviewBooking = () => {
   // Fallbacks for template
   const cabImages = [cab.cabImageUrl || cab.image || ""];
   const estimatedDistance = 100; // Mock distance
-  const baseFare = calculateBaseFare();
+  const rawBaseFare = (cabDetails.baseFare || 0) + (cabDetails.perKmRate || 0) * estimatedDistance;
   const discount = calculateDiscount();
-  const gst = baseFare * 0.18;
-  const totalFare = baseFare + gst - discount;
+  
+  // Use new fare calculation
+  const fareBreakdown = calculateNewFareBreakdown(rawBaseFare, discount);
+  const { baseFare, couponDiscount, finalAmount, gstAmount, totalWithGst, tokenAmount } = fareBreakdown;
+  
+  // Amount to pay now (based on payment type)
+  const amountToPay = paymentType === "token" ? tokenAmount : totalWithGst;
+  
+  // Remaining amount (to be paid to driver after trip)
+  const remainingAmount = paymentType === "token" ? totalWithGst - tokenAmount : 0;
+  
   const estimatedTravelTime = 13.5;
   const tripType = "Round Trip";
 
-  const handlePayment = (method, isAdvance) => {
+  const handlePayment = () => {
     if (!formData.name || !formData.phone || !formData.email) {
       toast.error("Please fill in all traveller details");
       return;
     }
-    setPaymentMethod(method);
     setShowPaymentModal(true);
   };
 
@@ -237,12 +273,17 @@ const ReviewBooking = () => {
         passengerName: formData.name,
         passengerPhone: formData.phone,
         passengerEmail: formData.email,
-        baseFare,
-        gst,
-        discount,
+        baseFare: rawBaseFare,
+        discount: couponDiscount,
         couponCode: appliedCoupon?.promocode || null,
         couponDescription: appliedCoupon?.description || null,
-        totalFare,
+        finalAmount,
+        gstAmount,
+        totalWithGst,
+        tokenAmount,
+        paymentType,
+        amountPaid: amountToPay,
+        remainingAmount,
         paymentMethod,
         paymentDate: new Date().toLocaleDateString(),
       };
@@ -536,49 +577,102 @@ const ReviewBooking = () => {
                   <div className="space-y-3">
                     <div className="flex justify-between">
                       <span className="text-sm">Base Fare</span>
-                      <span className="font-semibold">₹{baseFare.toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm">GST (18%)</span>
-                      <span className="font-semibold">₹{gst.toFixed(2)}</span>
+                      <span className="font-semibold">₹{rawBaseFare.toFixed(2)}</span>
                     </div>
                     
                     {/* Discount Section */}
-                    {appliedCoupon && discount > 0 && (
+                    {appliedCoupon && couponDiscount > 0 && (
                       <div className="flex justify-between text-sm text-green-600">
                         <span>Coupon Discount ({appliedCoupon.promocode})</span>
-                        <span>-₹{discount.toFixed(2)}</span>
+                        <span>-₹{couponDiscount.toFixed(2)}</span>
                       </div>
                     )}
                     
-                    <div className="border-t pt-3 flex justify-between text-lg font-bold">
-                      <span>Total Fare</span>
-                      <span className="text-primary">₹{totalFare.toFixed(2)}</span>
+                    <div className="flex justify-between">
+                      <span className="text-sm">Final Amount</span>
+                      <span className="font-semibold">₹{finalAmount.toFixed(2)}</span>
                     </div>
                     
-                    {appliedCoupon && discount > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-sm">GST (5%)</span>
+                      <span className="font-semibold">₹{gstAmount.toFixed(2)}</span>
+                    </div>
+                    
+                    <div className="border-t pt-3 flex justify-between text-lg font-bold">
+                      <span>Total Fare</span>
+                      <span className="text-primary">₹{totalWithGst.toFixed(2)}</span>
+                    </div>
+                    
+                    {appliedCoupon && couponDiscount > 0 && (
                       <div className="bg-green-50 border border-green-200 rounded-lg p-2 text-center">
                         <p className="text-xs text-green-700">
-                          You saved ₹{discount.toFixed(2)} with this coupon! 🎉
+                          You saved ₹{couponDiscount.toFixed(2)} with this coupon! 🎉
                         </p>
                       </div>
                     )}
                   </div>
+                  
+                  {/* Payment Type Selection */}
+                  <div className="border-t pt-4">
+                    <Label className="text-base font-semibold mb-3 block">Select Payment Type</Label>
+                    <RadioGroup value={paymentType} onValueChange={(value: "token" | "full") => setPaymentType(value)} className="space-y-3">
+                      <div className="flex items-center space-x-2 border rounded-lg p-3 cursor-pointer hover:bg-accent" onClick={() => setPaymentType("token")}>
+                        <RadioGroupItem value="token" id="token" />
+                        <Label htmlFor="token" className="flex-1 cursor-pointer">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <p className="font-semibold">Pay Token Amount</p>
+                              <p className="text-xs text-muted-foreground mt-1">Pay now, rest to driver after trip</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-bold text-primary">₹{tokenAmount}</p>
+                              {tokenAmount < totalWithGst && (
+                                <p className="text-xs text-muted-foreground">+₹{remainingAmount.toFixed(2)} later</p>
+                              )}
+                            </div>
+                          </div>
+                        </Label>
+                      </div>
+                      
+                      <div className="flex items-center space-x-2 border rounded-lg p-3 cursor-pointer hover:bg-accent" onClick={() => setPaymentType("full")}>
+                        <RadioGroupItem value="full" id="full" />
+                        <Label htmlFor="full" className="flex-1 cursor-pointer">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <p className="font-semibold">Pay Full Amount</p>
+                              <p className="text-xs text-muted-foreground mt-1">Pay complete fare now</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-bold text-primary">₹{totalWithGst.toFixed(2)}</p>
+                            </div>
+                          </div>
+                        </Label>
+                      </div>
+                    </RadioGroup>
+                    
+                    {/* Show remaining amount info for token payment */}
+                    {paymentType === "token" && remainingAmount > 0 && (
+                      <div className="mt-3 bg-blue-50 border border-blue-200 rounded-lg p-3">
+                        <div className="flex items-start gap-2">
+                          <div className="text-blue-600 mt-0.5">ℹ️</div>
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-blue-900">Remaining Payment</p>
+                            <p className="text-xs text-blue-700 mt-1">
+                              You will pay <span className="font-semibold">₹{remainingAmount.toFixed(2)}</span> to the driver after completing the trip.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  
                   <div className="space-y-3 pt-4">
                     <Button
                       size="lg"
-                      variant="outline"
-                      className="w-full"
-                      onClick={() => handlePayment("Advance Payment", true)}
-                    >
-                      Pay Advance (30%)
-                    </Button>
-                    <Button
-                      size="lg"
                       className="w-full gradient-hero"
-                      onClick={() => handlePayment("Full Payment", false)}
+                      onClick={handlePayment}
                     >
-                      Pay Full Amount
+                      Proceed to Pay ₹{amountToPay.toFixed(2)}
                     </Button>
                   </div>
                 </CardContent>
