@@ -4,16 +4,22 @@ import { registerFcmToken } from './notificationService';
 import { User } from '@/models/User';
 
 const TOKEN_KEY = 'bhada24_token';
+const TOKEN_EXPIRY_KEY = 'bhada24_token_expiry';
 
-export function setToken(token: string) {
+export function setToken(token: string, expiryHours = 24) {
+  // Calculate expiry time (default 24 hours from now)
+  const expiryTime = Date.now() + (expiryHours * 60 * 60 * 1000);
+  
   // persist token in both places for reliability (session primary, local as fallback)
   try {
     sessionStorage.setItem(TOKEN_KEY, token);
+    sessionStorage.setItem(TOKEN_EXPIRY_KEY, expiryTime.toString());
   } catch (e) {
     // ignore
   }
   try {
     localStorage.setItem(TOKEN_KEY, token);
+    localStorage.setItem(TOKEN_EXPIRY_KEY, expiryTime.toString());
   } catch (e) {
     // ignore
   }
@@ -23,9 +29,75 @@ export function getToken() {
   return sessionStorage.getItem(TOKEN_KEY) || localStorage.getItem(TOKEN_KEY) || null;
 }
 
+export function isTokenValid() {
+  const token = getToken();
+  if (!token) return false;
+  
+  const expiryStr = sessionStorage.getItem(TOKEN_EXPIRY_KEY) || localStorage.getItem(TOKEN_EXPIRY_KEY);
+  if (!expiryStr) return true; // If no expiry set, assume valid (backward compatibility)
+  
+  const expiry = parseInt(expiryStr, 10);
+  const now = Date.now();
+  
+  // Check if token expires in less than 5 minutes (refresh proactively)
+  return expiry > (now + (5 * 60 * 1000));
+}
+
+export function isTokenExpired() {
+  const expiryStr = sessionStorage.getItem(TOKEN_EXPIRY_KEY) || localStorage.getItem(TOKEN_EXPIRY_KEY);
+  if (!expiryStr) return false; // If no expiry set, assume not expired
+  
+  const expiry = parseInt(expiryStr, 10);
+  return Date.now() > expiry;
+}
+
 export function clearToken() {
   sessionStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(TOKEN_KEY);
+  sessionStorage.removeItem(TOKEN_EXPIRY_KEY);
+  localStorage.removeItem(TOKEN_EXPIRY_KEY);
+}
+
+/**
+ * Refresh the authentication token
+ */
+export async function refreshToken() {
+  try {
+    const tokenResp = await api.generateToken({ key: 'BHADA24', password: 'P@55word' });
+    console.debug('Token refreshed', tokenResp);
+    const token = (tokenResp as any)?.token || (tokenResp as any).token;
+    if (token) {
+      setToken(token);
+      return token;
+    }
+    return null;
+  } catch (error) {
+    console.error('Failed to refresh token', error);
+    return null;
+  }
+}
+
+/**
+ * Ensure we have a valid token, refresh if needed
+ */
+export async function ensureValidToken() {
+  if (!getToken() || isTokenExpired()) {
+    // Token is missing or expired, try to refresh
+    const newToken = await refreshToken();
+    if (!newToken) {
+      // Failed to refresh, clear and require re-login
+      clearToken();
+      return null;
+    }
+    return newToken;
+  }
+  
+  if (!isTokenValid()) {
+    // Token expires soon, refresh proactively
+    await refreshToken();
+  }
+  
+  return getToken();
 }
 
 function normalizeE164(phone: string) {

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Car, MapPin, Calendar, User, CreditCard, Star, Shield, Clock, Fuel, IndianRupee } from "lucide-react";
+import { Car, MapPin, Calendar, User, CreditCard, Star, Shield, Clock, Fuel, IndianRupee, Tag, X, Check } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,25 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import axios from "axios";
 import { getProfileByMobile } from "@/services/userService";
+import { getAllOffers } from "@/apiconfig/api";
+import { useApiCall } from "@/hooks/useApiCall";
+
+interface Offer {
+  offerId: string;
+  promocode: string;
+  description: string;
+  discount: number;
+  minFare: number;
+  discountPercentage: number;
+  maxDiscount: number;
+  state: string;
+  city: string;
+  status: string;
+  usedCount: number;
+  usageLimit: number;
+  promoStartDate: string;
+  promoEndDate: string;
+}
 
 const ReviewBooking = () => {
   const navigate = useNavigate();
@@ -26,6 +45,13 @@ const ReviewBooking = () => {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState("");
   const [processing, setProcessing] = useState(false);
+  
+  // Coupon state
+  const [offers, setOffers] = useState<Offer[]>([]);
+  const [couponCode, setCouponCode] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState<Offer | null>(null);
+  const [showOffers, setShowOffers] = useState(false);
+  const { execute: fetchOffersApi } = useApiCall();
 
   const [formData, setFormData] = useState({
     name: "",
@@ -73,7 +99,86 @@ const ReviewBooking = () => {
         }
       });
     }
+    
+    // Fetch offers
+    fetchOffers();
   }, [registrationId]);
+
+  const fetchOffers = async () => {
+    await fetchOffersApi(
+      async () => {
+        const response = await getAllOffers();
+        // Filter only ACTIVE offers
+        const activeOffers = response.filter((offer: Offer) => offer.status === "ACTIVE");
+        setOffers(activeOffers);
+        return activeOffers;
+      },
+      {
+        showErrorToast: false, // Don't show error toast for offers (optional feature)
+        redirectOnAuthError: false, // Don't redirect if offers fail to load
+      }
+    );
+  };
+
+  const calculateBaseFare = () => {
+    if (!cabDetails) return 0;
+    const estimatedDistance = 100; // Mock distance
+    return (cabDetails.baseFare || 0) + (cabDetails.perKmRate || 0) * estimatedDistance;
+  };
+
+  const calculateDiscount = () => {
+    if (!appliedCoupon) return 0;
+    
+    const baseFare = calculateBaseFare();
+    
+    // Check if minimum fare requirement is met
+    if (baseFare < appliedCoupon.minFare) {
+      return 0;
+    }
+    
+    let discount = 0;
+    
+    // Calculate discount based on type
+    if (appliedCoupon.discountPercentage > 0) {
+      // Percentage based discount
+      discount = (baseFare * appliedCoupon.discountPercentage) / 100;
+      // Cap at max discount
+      if (appliedCoupon.maxDiscount > 0) {
+        discount = Math.min(discount, appliedCoupon.maxDiscount);
+      }
+    } else if (appliedCoupon.discount > 0) {
+      // Flat discount
+      discount = appliedCoupon.discount;
+    }
+    
+    return discount;
+  };
+
+  const applyCoupon = (code: string) => {
+    const offer = offers.find(o => o.promocode.toUpperCase() === code.toUpperCase());
+    
+    if (!offer) {
+      toast.error("Invalid coupon code");
+      return;
+    }
+    
+    const baseFare = calculateBaseFare();
+    
+    if (baseFare < offer.minFare) {
+      toast.error(`This coupon requires a minimum fare of ₹${offer.minFare}`);
+      return;
+    }
+    
+    setAppliedCoupon(offer);
+    setCouponCode("");
+    setShowOffers(false);
+    toast.success(`${offer.description} applied!`);
+  };
+
+  const removeCoupon = () => {
+    setAppliedCoupon(null);
+    toast.success("Coupon removed");
+  };
 
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center bg-white">
@@ -101,9 +206,10 @@ const ReviewBooking = () => {
   // Fallbacks for template
   const cabImages = [cab.cabImageUrl || cab.image || ""];
   const estimatedDistance = 100; // Mock distance
-  const baseFare = (cabDetails.baseFare || 0) + (cabDetails.perKmRate || 0) * estimatedDistance;
+  const baseFare = calculateBaseFare();
+  const discount = calculateDiscount();
   const gst = baseFare * 0.18;
-  const totalFare = baseFare + gst;
+  const totalFare = baseFare + gst - discount;
   const estimatedTravelTime = 13.5;
   const tripType = "Round Trip";
 
@@ -133,6 +239,9 @@ const ReviewBooking = () => {
         passengerEmail: formData.email,
         baseFare,
         gst,
+        discount,
+        couponCode: appliedCoupon?.promocode || null,
+        couponDescription: appliedCoupon?.description || null,
         totalFare,
         paymentMethod,
         paymentDate: new Date().toLocaleDateString(),
@@ -326,7 +435,96 @@ const ReviewBooking = () => {
               </Card>
             </div>
             {/* Right Column - Payment Summary (Sticky) */}
-            <div className="lg:col-span-1">
+            <div className="lg:col-span-1 space-y-6">
+              {/* Coupon Section */}
+              <Card className="sticky top-4">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Tag className="h-5 w-5 text-primary" />
+                    Apply Coupon
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* Applied Coupon Display */}
+                  {appliedCoupon && (
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-3 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Check className="h-4 w-4 text-green-600" />
+                        <div>
+                          <p className="font-semibold text-sm text-green-800">{appliedCoupon.promocode}</p>
+                          <p className="text-xs text-green-600">{appliedCoupon.description}</p>
+                        </div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={removeCoupon}
+                        className="h-6 w-6 p-0"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
+
+                  {/* Coupon Input */}
+                  {!appliedCoupon && (
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Enter coupon code"
+                        value={couponCode}
+                        onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                        className="flex-1"
+                      />
+                      <Button
+                        onClick={() => applyCoupon(couponCode)}
+                        disabled={!couponCode.trim()}
+                      >
+                        Apply
+                      </Button>
+                    </div>
+                  )}
+
+                  {/* Available Coupons */}
+                  {!appliedCoupon && (
+                    <>
+                      <Button
+                        variant="link"
+                        className="w-full text-sm p-0"
+                        onClick={() => setShowOffers(!showOffers)}
+                      >
+                        {showOffers ? "Hide" : "View"} Available Coupons ({offers.length})
+                      </Button>
+                      
+                      {showOffers && offers.length > 0 && (
+                        <div className="space-y-2 max-h-60 overflow-y-auto">
+                          {offers.map((offer) => (
+                            <div
+                              key={offer.offerId}
+                              className="border rounded-lg p-3 hover:border-primary cursor-pointer transition-colors"
+                              onClick={() => applyCoupon(offer.promocode)}
+                            >
+                              <div className="flex items-start justify-between">
+                                <div>
+                                  <p className="font-semibold text-sm">{offer.promocode}</p>
+                                  <p className="text-xs text-muted-foreground mt-1">{offer.description}</p>
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    Min. Fare: ₹{offer.minFare}
+                                  </p>
+                                </div>
+                                <Badge variant="secondary" className="text-xs">
+                                  Apply
+                                </Badge>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Payment Summary */}
               <Card className="sticky top-4">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -344,10 +542,27 @@ const ReviewBooking = () => {
                       <span className="text-sm">GST (18%)</span>
                       <span className="font-semibold">₹{gst.toFixed(2)}</span>
                     </div>
+                    
+                    {/* Discount Section */}
+                    {appliedCoupon && discount > 0 && (
+                      <div className="flex justify-between text-sm text-green-600">
+                        <span>Coupon Discount ({appliedCoupon.promocode})</span>
+                        <span>-₹{discount.toFixed(2)}</span>
+                      </div>
+                    )}
+                    
                     <div className="border-t pt-3 flex justify-between text-lg font-bold">
                       <span>Total Fare</span>
                       <span className="text-primary">₹{totalFare.toFixed(2)}</span>
                     </div>
+                    
+                    {appliedCoupon && discount > 0 && (
+                      <div className="bg-green-50 border border-green-200 rounded-lg p-2 text-center">
+                        <p className="text-xs text-green-700">
+                          You saved ₹{discount.toFixed(2)} with this coupon! 🎉
+                        </p>
+                      </div>
+                    )}
                   </div>
                   <div className="space-y-3 pt-4">
                     <Button

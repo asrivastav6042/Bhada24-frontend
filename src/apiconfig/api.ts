@@ -20,7 +20,8 @@ export async function request<T = any>(
   method: HttpMethod = 'GET',
   body?: any,
   params?: Record<string, string | number | boolean>,
-  token?: string
+  token?: string,
+  retryCount = 0
 ): Promise<T> {
   let url = `${BASE_URL}${path.startsWith('/') ? path : `/${path}`}`;
 
@@ -61,6 +62,33 @@ export async function request<T = any>(
 
   if (!res.ok) {
     const txt = await res.text();
+    
+    // If we get 401 Unauthorized and haven't retried yet, try to refresh the token
+    if (res.status === 401 && retryCount === 0) {
+      try {
+        // Dynamically import authService to avoid circular dependencies
+        const { refreshToken } = await import('@/services/authService');
+        const newToken = await refreshToken();
+        
+        if (newToken) {
+          // Retry the request with the new token
+          return request<T>(path, method, body, params, newToken, retryCount + 1);
+        }
+      } catch (refreshError) {
+        console.error('Token refresh failed:', refreshError);
+        // Clear token and redirect to login
+        sessionStorage.removeItem(TOKEN_KEY);
+        localStorage.removeItem(TOKEN_KEY);
+        sessionStorage.removeItem('bhada24_token_expiry');
+        localStorage.removeItem('bhada24_token_expiry');
+        
+        // Check if we're not already on login page to avoid infinite redirect
+        if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
+          window.location.href = '/login';
+        }
+      }
+    }
+    
     throw new Error(`Request failed ${res.status} ${res.statusText}: ${txt}`);
   }
 
