@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { CheckCircle, Download, Car } from "lucide-react";
+import { COLORS } from "@/styles/colors";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -37,8 +38,8 @@ const PaymentReceipt = () => {
         <div className="max-w-3xl mx-auto">
           {/* Success Message */}
           <div className="text-center mb-6 sm:mb-8 animate-fade-in">
-            <div className="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-green-100 mb-3 sm:mb-4">
-              <CheckCircle className="h-10 w-10 sm:h-12 sm:w-12 text-green-600" />
+            <div className="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-full mb-3 sm:mb-4" style={{ background: 'rgba(25, 150, 117, 0.1)' }}>
+              <CheckCircle className="h-10 w-10 sm:h-12 sm:w-12" style={{ color: COLORS.primary }} />
             </div>
             <h1 className="text-2xl sm:text-3xl font-bold mb-2">Payment Successful!</h1>
             <p className="text-sm sm:text-base text-muted-foreground">Your booking has been confirmed</p>

@@ -336,7 +336,7 @@ export default function BookingForm({ loading, setLoading }) {
                 </div>
                 <div>
                   <div className="flex items-center gap-2 text-gray-700 font-medium mb-2">
-                    <Calendar className="h-5 w-5 text-green-600" />
+                    <Calendar className="h-5 w-5" style={{ color: COLORS.primary }} />
                     Pickup Date
                   </div>
                   <Input

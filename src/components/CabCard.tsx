@@ -44,7 +44,7 @@ const CabCard = ({ cab, onBook }: CabCardProps) => {
             className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
           />
           <div className="absolute top-3 right-3 px-3 py-1 rounded-full text-sm font-semibold flex items-center gap-1"
-            style={{ background: '#199675', color: '#fff' }}>
+            style={{ background: COLORS.primary, color: '#fff' }}>
             <Star className="h-4 w-4 fill-current" style={{ color: '#fff' }} />
             {cab.rating}
           </div>
@@ -56,25 +56,25 @@ const CabCard = ({ cab, onBook }: CabCardProps) => {
               <p className="text-xs sm:text-sm text-muted-foreground">{cab.type}</p>
             </div>
             <div className="text-right shrink-0">
-              <p className="text-xl sm:text-2xl font-bold" style={{ color: '#199675' }}>₹{Number(cab.pricePerKm).toFixed(2)}</p>
-              <p className="text-xs" style={{ color: '#199675' }}>per km</p>
+              <p className="text-xl sm:text-2xl font-bold" style={{ color: COLORS.primary }}>₹{Number(cab.pricePerKm).toFixed(2)}</p>
+              <p className="text-xs" style={{ color: COLORS.primary }}>per km</p>
             </div>
           </div>
           <div className="flex gap-3 sm:gap-4 text-xs sm:text-sm">
-            <div className="flex items-center gap-1" style={{ color: '#199675' }}>
-              <Users className="h-3 w-3 sm:h-4 sm:w-4 shrink-0" style={{ color: '#199675' }} />
+            <div className="flex items-center gap-1" style={{ color: COLORS.primary }}>
+              <Users className="h-3 w-3 sm:h-4 sm:w-4 shrink-0" style={{ color: COLORS.primary }} />
               <span className="whitespace-nowrap">{cab.seats} Seats</span>
             </div>
             {cab.ac && (
-              <div className="flex items-center gap-1" style={{ color: '#199675' }}>
-                <Wind className="h-3 w-3 sm:h-4 sm:w-4 shrink-0" style={{ color: '#199675' }} />
+              <div className="flex items-center gap-1" style={{ color: COLORS.primary }}>
+                <Wind className="h-3 w-3 sm:h-4 sm:w-4 shrink-0" style={{ color: COLORS.primary }} />
                 <span>AC</span>
               </div>
             )}
           </div>
           <div className="mt-3 pt-3 border-t">
             <p className="text-xs sm:text-sm text-muted-foreground">
-              Base Fare: <span className="font-semibold" style={{ color: '#199675' }}>₹{Number(cab.basePrice).toFixed(2)}</span>
+              Base Fare: <span className="font-semibold" style={{ color: COLORS.primary }}>₹{Number(cab.basePrice).toFixed(2)}</span>
             </p>
           </div>
         </CardContent>
