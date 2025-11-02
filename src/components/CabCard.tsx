@@ -3,7 +3,7 @@ import { COLORS } from "@/styles/colors";
 import { Star, Users, Wind } from "lucide-react";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardFooter } from "./ui/card";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 
 interface CabCardProps {
   cab: {
@@ -19,10 +19,13 @@ interface CabCardProps {
     regNo: string;
   };
   onBook: (cabId: string) => void;
+  cabDetailsForBooking?: any; // Complete cab data for booking
 }
 
-const CabCard = ({ cab, onBook }: CabCardProps) => {
-  const navigate = useNavigate(); // Keep only one instance of useNavigate
+const CabCard = ({ cab, onBook, cabDetailsForBooking }: CabCardProps) => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  
   const handleAddToCart = () => {
     const cart = JSON.parse(localStorage.getItem('cabCart') || '[]');
     if (!cart.find((item: any) => item.id === cab.id)) {
@@ -31,10 +34,27 @@ const CabCard = ({ cab, onBook }: CabCardProps) => {
       window.dispatchEvent(new Event('cabCartUpdated'));
     }
   };
+  
+  const handleCardClick = () => {
+    // Get search details from location state
+    const search = location.state?.search || {};
+    const from = search.pickupLocation || "";
+    const to = search.dropLocation || "";
+    const date = search.pickupDateTime ? search.pickupDateTime.split('T')[0] : "";
+    
+    // Navigate to ReviewBooking page with complete cab details
+    navigate('/review-booking', {
+      state: {
+        cabDetails: cabDetailsForBooking || cab,
+        search: { from, to, date }
+      }
+    });
+  };
+  
   return (
     <div
       style={{ cursor: 'pointer' }}
-      onClick={() => navigate('/cart-cab-details', { state: { cab } })}
+      onClick={handleCardClick}
     >
       <Card className="overflow-hidden hover:shadow-lg transition-all duration-300 animate-fade-in group">
         <div className="relative overflow-hidden">

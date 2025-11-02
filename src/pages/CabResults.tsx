@@ -138,9 +138,21 @@ const CabResults = () => {
       alert('No cabId found for booking. Please contact support.');
       return;
     }
+    
+    // Find the complete cab data from cabs array
+    const selectedCab = cabs.find(cab => 
+      (cab.id?.toString() || cab.cabId?.toString()) === cabId
+    );
+    
+    if (!selectedCab) {
+      alert('Cab details not found. Please try again.');
+      return;
+    }
+    
+    // Navigate with complete cab data
     navigate('/review-booking', {
       state: {
-        registrationId: cabId,
+        cabDetails: selectedCab, // Pass complete cab object
         search: { from, to, date }
       }
     });
@@ -413,7 +425,12 @@ const CabResults = () => {
                       primaryColor: COLORS.primary,
                     };
                     return (
-                      <CabCard key={mappedCab.id} cab={mappedCab} onBook={handleBookCab} />
+                      <CabCard 
+                        key={mappedCab.id} 
+                        cab={mappedCab} 
+                        onBook={handleBookCab}
+                        cabDetailsForBooking={cab} // Pass complete original cab data
+                      />
                     );
                   })}
                 </div>

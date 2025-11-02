@@ -6,6 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Star, Car, MapPin, Clock, Shield, Fuel, IndianRupee, CreditCard, Tag, X, Check } from "lucide-react";
 import { getAllOffers } from "@/apiconfig/api";
 import { useToast } from "@/hooks/use-toast";
@@ -28,12 +30,37 @@ interface Offer {
   promoEndDate: string;
 }
 
+/**
+ * Calculate new fare breakdown with coupon, GST on final amount, and token logic
+ */
+const calculateNewFareBreakdown = (baseFare: number, couponDiscount: number = 0) => {
+  const finalAmount = Math.max(0, baseFare - couponDiscount);
+  const gstAmount = +(finalAmount * 0.05).toFixed(2); // 5% GST
+  const totalWithGst = +(finalAmount + gstAmount).toFixed(2);
+  
+  // Token: (finalAmount × 0.05) + (finalAmount × 0.12) + ((finalAmount × 0.12) × 0.18)
+  const tokenBase = finalAmount * 0.05;
+  const token12 = finalAmount * 0.12;
+  const token12gst = token12 * 0.18;
+  const tokenAmount = Math.round(tokenBase + token12 + token12gst);
+  
+  return {
+    baseFare,
+    couponDiscount,
+    finalAmount,
+    gstAmount,
+    totalWithGst,
+    tokenAmount
+  };
+};
+
 const Cart = () => {
   const [cart, setCart] = useState<any[]>([]);
   const [offers, setOffers] = useState<Offer[]>([]);
   const [couponCode, setCouponCode] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState<Offer | null>(null);
   const [showOffers, setShowOffers] = useState(false);
+  const [paymentType, setPaymentType] = useState<"token" | "full">("full");
   const navigate = useNavigate();
   const { toast } = useToast();
   const { execute: fetchOffersApi } = useApiCall();
@@ -61,7 +88,8 @@ const Cart = () => {
   };
 
   const calculateBaseFare = () => {
-    return cart.reduce((sum, cab) => sum + (Number(cab.basePrice) || 0), 0);
+    // Use fare field if available, otherwise fall back to basePrice
+    return cart.reduce((sum, cab) => sum + (Number(cab.fare) || Number(cab.basePrice) || 0), 0);
   };
 
   const calculateDiscount = () => {
@@ -145,9 +173,9 @@ const Cart = () => {
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
-      <div className="container py-4 sm:py-6 md:py-8 flex-1 px-4">
+      <div className="container py-4 sm:py-6 md:py-8 flex-1 px-6 sm:px-8 md:px-12 lg:px-16">
         <div className="max-w-7xl mx-auto">
-          <h1 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6 md:mb-8">My Cart</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6 md:mb-8">Review your Booking</h1>
           {cart.length === 0 ? (
             <div className="text-center py-16">
               <p className="text-lg text-muted-foreground">No cabs in your cart. Add cabs to cart from the results page.</p>
@@ -155,81 +183,76 @@ const Cart = () => {
           ) : (
             <div className="grid lg:grid-cols-3 gap-6">
               {/* Left: Cab Details (spans 2 columns) */}
-              <div className="lg:col-span-2 space-y-6">
-                {cart.map((cab) => (
-                  <div
-                    key={cab.id}
-                    style={{ cursor: 'pointer' }}
-                    onClick={() => navigate('/cart-cab-details', { state: { cab } })}
-                  >
-                    <Card className="overflow-hidden animate-fade-in group" style={{ minHeight: '120px', height: 'auto', paddingTop: '8px' }}>
-                      <CardContent>
-                        <div className="grid md:grid-cols-5 gap-6">
+              <div className="lg:col-span-2">
+                {/* Display cabs in a 2-column grid */}
+                <div className="grid md:grid-cols-2 gap-4">
+                  {cart.map((cab) => (
+                    <div
+                      key={cab.id}
+                      style={{ cursor: 'pointer' }}
+                      onClick={() => navigate('/cart-cab-details', { state: { cab } })}
+                    >
+                      <Card className="overflow-hidden animate-fade-in group hover:shadow-lg transition-shadow h-full relative">
+                        {/* Remove Icon - Top Right */}
+                        <button
+                          className="absolute top-2 right-2 z-10 bg-red-500 hover:bg-red-600 text-white rounded-full p-1.5 transition-colors shadow-md"
+                          onClick={e => { e.stopPropagation(); handleRemove(cab.id); }}
+                          aria-label="Remove from cart"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                        
+                        <CardContent className="p-3">
                           {/* Image */}
-                          <div className="md:col-span-2 flex items-center justify-center" style={{ height: '100%' }}>
+                          <div className="flex items-center justify-center mb-2">
                             <img
                               src={cab.image || cab.cabImageUrl || ""}
                               alt={cab.name}
-                              className="h-16 sm:h-20 object-cover rounded-lg"
-                              style={{ marginTop: '0px', display: 'block', marginLeft: 'auto', marginRight: 'auto' }}
+                              className="h-16 w-full object-contain rounded-lg"
                             />
                           </div>
+                          
                           {/* Cab Info */}
-                          <div className="md:col-span-3 space-y-2 sm:space-y-3" style={{ marginTop: '0px', paddingTop: '0px' }}>
-                            <h3 className="font-bold text-xl sm:text-2xl mb-2">{cab.name}</h3>
-                            <p className="text-xs sm:text-sm text-muted-foreground">
+                          <div className="space-y-1.5">
+                            <h3 className="font-bold text-base">{cab.name}</h3>
+                            <p className="text-xs text-muted-foreground">
                               {cab.type} • {cab.ac ? "AC" : "Non-AC"} • {cab.seats} Seats
                             </p>
-                            <div className="grid grid-cols-2 gap-3 pt-2">
-                              <div className="flex items-center gap-2 text-sm">
-                                <IndianRupee className="h-4 w-4 text-primary" />
-                                <div>
-                                  <p className="text-xs text-muted-foreground">Extra km fare</p>
-                                  <p className="font-medium">₹{Number(cab.pricePerKm).toFixed(2)} per km</p>
+                            
+                            {/* Key Details */}
+                            <div className="space-y-1 pt-1">
+                              <div className="flex items-center justify-between text-sm">
+                                <div className="flex items-center gap-1">
+                                  <IndianRupee className="h-3 w-3 text-primary" />
+                                  <span className="text-xs text-muted-foreground">Extra km</span>
                                 </div>
+                                <span className="font-medium text-xs">₹{Number(cab.pricePerKm).toFixed(2)}/km</span>
                               </div>
-                              <div className="flex items-center gap-2 text-sm">
-                                <Fuel className="h-4 w-4 text-primary" />
-                                <div>
-                                  <p className="text-xs text-muted-foreground">Fuel Type</p>
-                                  <p className="font-medium">{cab.fuelType || cab.fluelType || ""}</p>
+                              
+                              <div className="flex items-center justify-between text-sm">
+                                <div className="flex items-center gap-1">
+                                  <Fuel className="h-3 w-3 text-primary" />
+                                  <span className="text-xs text-muted-foreground">Fuel</span>
                                 </div>
-                              </div>
-                              <div className="flex items-center gap-2 text-sm">
-                                <Clock className="h-4 w-4 text-primary" />
-                                <div>
-                                  <p className="text-xs text-muted-foreground">Travel Time</p>
-                                  <p className="font-medium">13.5 hours</p>
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-2 text-sm">
-                                <Shield className="h-4 w-4 text-primary" />
-                                <div>
-                                  <p className="text-xs text-muted-foreground">Insurance</p>
-                                  <p className="font-medium">{cab.insurance ? "Yes" : "No"}</p>
-                                </div>
+                                <span className="font-medium text-xs">{cab.fuelType || cab.fluelType || "Petrol"}</span>
                               </div>
                             </div>
+                            
                             {/* Fare display */}
-                            <div className="mt-2">
-                              <span className="text-sm font-semibold text-black">Fare: ₹{Number(cab.basePrice).toFixed(2)}</span>
-                            </div>
-                            <div className="flex gap-2 mt-4">
-                              <Button
-                                variant="outline"
-                                className="flex-1"
-                                onClick={e => { e.stopPropagation(); handleRemove(cab.id); }}
-                              >
-                                Remove
-                              </Button>
+                            <div className="pt-1.5 border-t mt-1.5">
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs font-semibold">Fare:</span>
+                                <span className="text-base font-bold text-primary">₹{(Number(cab.fare) || Number(cab.basePrice) || 0).toFixed(2)}</span>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </div>
-                ))}
+                        </CardContent>
+                      </Card>
+                    </div>
+                  ))}
+                </div>
               </div>
+              
               {/* Right: Payment Summary */}
               <div className="space-y-6">
                 {/* Coupon Section */}
@@ -329,50 +352,126 @@ const Cart = () => {
                   </CardHeader>
                   <CardContent>
                     {/* Calculate payment summary for all cabs */}
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm mb-2">
-                        <span>Base Fare</span>
-                        <span>₹{calculateBaseFare().toFixed(2)}</span>
-                      </div>
-                      <div className="flex justify-between text-sm mb-2">
-                        <span>GST (18%)</span>
-                        <span>₹{(calculateBaseFare() * 0.18).toFixed(2)}</span>
-                      </div>
+                    {(() => {
+                      const rawBaseFare = calculateBaseFare();
+                      const discount = calculateDiscount();
+                      const fareBreakdown = calculateNewFareBreakdown(rawBaseFare, discount);
+                      const { baseFare, couponDiscount, finalAmount, gstAmount, totalWithGst, tokenAmount } = fareBreakdown;
                       
-                      {/* Discount Section */}
-                      {appliedCoupon && calculateDiscount() > 0 && (
-                        <div className="flex justify-between text-sm mb-2 text-green-600">
-                          <span>Coupon Discount ({appliedCoupon.promocode})</span>
-                          <span>-₹{calculateDiscount().toFixed(2)}</span>
-                        </div>
-                      )}
+                      // Amount to pay based on payment type
+                      const amountToPay = paymentType === "token" ? tokenAmount : totalWithGst;
+                      const remainingAmount = paymentType === "token" ? totalWithGst - tokenAmount : 0;
                       
-                      <div className="border-t pt-2 mt-2"></div>
-                      <div className="flex justify-between text-lg font-bold text-primary mb-2">
-                        <span>Total Fare</span>
-                        <span>₹{((calculateBaseFare() * 1.18) - calculateDiscount()).toFixed(2)}</span>
-                      </div>
-                      
-                      {appliedCoupon && calculateDiscount() > 0 && (
-                        <div className="bg-green-50 border border-green-200 rounded-lg p-2 text-center">
-                          <p className="text-xs text-green-700">
-                            You saved ₹{calculateDiscount().toFixed(2)} with this coupon! 🎉
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                    <div className="space-y-2 mt-4">
-                      <Button
-                        style={{ background: "#e00" }}
-                        className="w-full text-white text-base font-semibold py-2"
-                        onClick={() => {
-                          // Book all cabs (could navigate to payment or booking page)
-                          cart.forEach((cab) => handleBook(cab.id));
-                        }}
-                      >
-                        Pay Full Amount
-                      </Button>
-                    </div>
+                      return (
+                        <>
+                          <div className="space-y-3">
+                            <div className="flex justify-between">
+                              <span className="text-sm">Base Fare</span>
+                              <span className="font-semibold">₹{baseFare.toFixed(2)}</span>
+                            </div>
+                            
+                            {/* Discount Section - only show if coupon is applied */}
+                            {appliedCoupon && couponDiscount > 0 && (
+                              <>
+                                <div className="flex justify-between text-green-600">
+                                  <span className="text-sm">Coupon Discount ({appliedCoupon.promocode})</span>
+                                  <span className="font-semibold">-₹{couponDiscount.toFixed(2)}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-sm">Final Amount</span>
+                                  <span className="font-semibold">₹{finalAmount.toFixed(2)}</span>
+                                </div>
+                              </>
+                            )}
+                            
+                            <div className="flex justify-between">
+                              <span className="text-sm">GST (5%)</span>
+                              <span className="font-semibold">₹{gstAmount.toFixed(2)}</span>
+                            </div>
+                            
+                            <div className="border-t pt-3 flex justify-between text-lg font-bold">
+                              <span>Total Fare</span>
+                              <span className="text-primary">₹{totalWithGst.toFixed(2)}</span>
+                            </div>
+                            
+                            {appliedCoupon && couponDiscount > 0 && (
+                              <div className="bg-green-50 border border-green-200 rounded-lg p-2 text-center">
+                                <p className="text-xs text-green-700">
+                                  You saved ₹{couponDiscount.toFixed(2)} with this coupon! 🎉
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                          
+                          {/* Payment Type Selection */}
+                          <div className="border-t pt-4 mt-4">
+                            <Label className="text-base font-semibold mb-3 block">Select Payment Type</Label>
+                            <RadioGroup value={paymentType} onValueChange={(value: "token" | "full") => setPaymentType(value)} className="space-y-3">
+                              <div className="flex items-center space-x-2 border rounded-lg p-3 cursor-pointer" onClick={() => setPaymentType("token")}>
+                                <RadioGroupItem value="token" id="token" />
+                                <Label htmlFor="token" className="flex-1 cursor-pointer">
+                                  <div className="flex justify-between items-start">
+                                    <div>
+                                      <p className="font-semibold">Pay Token Amount</p>
+                                      <p className="text-xs text-muted-foreground mt-1">Pay now, rest to driver after trip</p>
+                                    </div>
+                                    <div className="text-right">
+                                      <p className="font-bold text-primary">₹{tokenAmount}</p>
+                                      {tokenAmount < totalWithGst && (
+                                        <p className="text-xs text-muted-foreground">+₹{remainingAmount.toFixed(2)} later</p>
+                                      )}
+                                    </div>
+                                  </div>
+                                </Label>
+                              </div>
+                              
+                              <div className="flex items-center space-x-2 border rounded-lg p-3 cursor-pointer" onClick={() => setPaymentType("full")}>
+                                <RadioGroupItem value="full" id="full" />
+                                <Label htmlFor="full" className="flex-1 cursor-pointer">
+                                  <div className="flex justify-between items-start">
+                                    <div>
+                                      <p className="font-semibold">Pay Full Amount</p>
+                                      <p className="text-xs text-muted-foreground mt-1">Pay complete fare now</p>
+                                    </div>
+                                    <div className="text-right">
+                                      <p className="font-bold text-primary">₹{totalWithGst.toFixed(2)}</p>
+                                    </div>
+                                  </div>
+                                </Label>
+                              </div>
+                            </RadioGroup>
+                            
+                            {/* Show remaining amount info for token payment */}
+                            {paymentType === "token" && remainingAmount > 0 && (
+                              <div className="mt-3 bg-blue-50 border border-blue-200 rounded-lg p-3">
+                                <div className="flex items-start gap-2">
+                                  <div className="text-blue-600 mt-0.5">ℹ️</div>
+                                  <div className="flex-1">
+                                    <p className="text-sm font-medium text-blue-900">Remaining Payment</p>
+                                    <p className="text-xs text-blue-700 mt-1">
+                                      You will pay <span className="font-semibold">₹{remainingAmount.toFixed(2)}</span> to the driver after completing the trip.
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                          
+                          <div className="space-y-2 mt-4">
+                            <Button
+                              style={{ background: "#e00" }}
+                              className="w-full text-white text-base font-semibold py-2"
+                              onClick={() => {
+                                // Book all cabs (could navigate to payment or booking page)
+                                cart.forEach((cab) => handleBook(cab.id));
+                              }}
+                            >
+                              Proceed to Pay ₹{amountToPay.toFixed(2)}
+                            </Button>
+                          </div>
+                        </>
+                      );
+                    })()}
                   </CardContent>
                 </Card>
               </div>

@@ -61,11 +61,11 @@ const calculateNewFareBreakdown = (baseFare: number, couponDiscount: number = 0)
 const ReviewBooking = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { registrationId, search } = location.state || {};
+  const { cabDetails: passedCabDetails, search } = location.state || {};
   // Debug: log navigation state for troubleshooting
   console.debug('ReviewBooking location.state:', location.state);
-  const [cabDetails, setCabDetails] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [cabDetails, setCabDetails] = useState(passedCabDetails || null);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState("");
@@ -88,49 +88,55 @@ const ReviewBooking = () => {
   });
 
   useEffect(() => {
-  if (registrationId) {
-      (async () => {
-        try {
-          const { request, BASE_URL } = await import("@/apiconfig/api");
-          const token = localStorage.getItem("bhada24_token") || localStorage.getItem("token");
-          const apiUrl = `${BASE_URL}/api/cab/registration/get/${registrationId}`;
-          console.log('Fetching cab details:', { registrationId, apiUrl });
-          const res = await request(`/api/cab/registration/get/${registrationId}`, "GET", undefined, undefined, token);
-          if (Array.isArray(res?.responseData) && res.responseData.length > 0) {
-            setCabDetails(res.responseData[0]);
-          } else if (res?.responseData) {
-            setCabDetails(res.responseData);
-          } else {
-            setError("No cab details found.");
-          }
-        } catch (err) {
-          setError("Failed to fetch cab details.");
-        } finally {
-          setLoading(false);
-        }
-      })();
-    } else {
-  setError("Missing booking information. Please ensure you are booking from the cab results page and registrationId is passed in navigation state.");
-  setLoading(false);
+    // Validate that cab details were passed
+    if (!passedCabDetails) {
+      setError("Missing cab information. Please select a cab from the results page.");
+      setLoading(false);
+      toast.error("No cab details found. Redirecting...");
+      setTimeout(() => navigate('/'), 2000);
+      return;
     }
 
     // Fetch logged-in user info and set form fields
     const phone = localStorage.getItem("userPhone") || sessionStorage.getItem("userPhone");
     if (phone) {
-      getProfileByMobile(phone).then((user) => {
-        if (user) {
+      setLoading(true);
+      getProfileByMobile(phone)
+        .then((user) => {
+          if (user) {
+            setFormData({
+              name: user.name || "",
+              phone: user.phone || phone,
+              email: user.email || "",
+            });
+          } else {
+            // If user not found in API, use stored data
+            const storedName = localStorage.getItem("userName") || sessionStorage.getItem("userName");
+            setFormData({
+              name: storedName || "",
+              phone: phone,
+              email: "",
+            });
+          }
+        })
+        .catch((error) => {
+          console.error("Error fetching user profile:", error);
+          // Fallback to stored data
+          const storedName = localStorage.getItem("userName") || sessionStorage.getItem("userName");
           setFormData({
-            name: user.name || "",
-            phone: user.phone || "",
-            email: user.email || "",
+            name: storedName || "",
+            phone: phone,
+            email: "",
           });
-        }
-      });
+        })
+        .finally(() => {
+          setLoading(false);
+        });
     }
     
     // Fetch offers
     fetchOffers();
-  }, [registrationId]);
+  }, [passedCabDetails]);
 
   const fetchOffers = async () => {
     await fetchOffersApi(
@@ -150,8 +156,8 @@ const ReviewBooking = () => {
 
   const calculateBaseFare = () => {
     if (!cabDetails) return 0;
-    const estimatedDistance = 100; // Mock distance
-    return (cabDetails.baseFare || 0) + (cabDetails.perKmRate || 0) * estimatedDistance;
+    // Use the fare amount from API response directly (already calculated by backend)
+    return cabDetails.fare || cabDetails.basePrice || cabDetails.baseFare || 0;
   };
 
   const calculateDiscount = () => {
@@ -225,16 +231,33 @@ const ReviewBooking = () => {
   }
   if (!cabDetails) return null;
 
-  // Use API cab details
-  const cab = cabDetails.cabInfo || cabDetails.cab || cabDetails;
+  // Map cab details from passed data (handles both old API format and new direct pass)
+  const cab = {
+    cabName: cabDetails.name || cabDetails.cabName || '',
+    cabType: cabDetails.type || cabDetails.cabType || '',
+    cabImageUrl: cabDetails.image || cabDetails.cabImageUrl || '',
+    cabNumber: cabDetails.regNo || cabDetails.cabRegistrationNumber || cabDetails.cabNumber || '',
+    cabCapacity: cabDetails.seats || cabDetails.cabCapacity || 0,
+    ac: cabDetails.ac ?? false,
+    cabManufacturingYear: cabDetails.manufacturingYear || cabDetails.cabManufacturingYear || 'N/A',
+    cabColor: cabDetails.color || cabDetails.cabColor || 'N/A',
+    fluelType: cabDetails.fuelType || cabDetails.fluelType || 'Petrol',
+    cabInsurance: cabDetails.insurance || cabDetails.cabInsurance || 'Yes',
+  };
+  
   const from = search?.from || "";
   const to = search?.to || "";
   const date = search?.date || "";
 
   // Fallbacks for template
-  const cabImages = [cab.cabImageUrl || cab.image || ""];
-  const estimatedDistance = 100; // Mock distance
-  const rawBaseFare = (cabDetails.baseFare || 0) + (cabDetails.perKmRate || 0) * estimatedDistance;
+  const cabImages = [cab.cabImageUrl || ""];
+  
+  // Use fare amount directly from API response (not calculated)
+  // The API already calculates: baseFare + (perKmRate * totalDistance)
+  const rawBaseFare = cabDetails.fare || cabDetails.basePrice || cabDetails.baseFare || 0;
+  const perKmRate = cabDetails.pricePerKm || cabDetails.perKmRate || 0;
+  const totalDistance = cabDetails.totalDistance || 0;
+  
   const discount = calculateDiscount();
   
   // Use new fare calculation
@@ -249,6 +272,9 @@ const ReviewBooking = () => {
   
   const estimatedTravelTime = 13.5;
   const tripType = "Round Trip";
+  
+  // Rating from passed data
+  const cabRating = cabDetails.rating || cabDetails.ratingAvarage || 5.0;
 
   const handlePayment = () => {
     if (!formData.name || !formData.phone || !formData.email) {
@@ -300,7 +326,7 @@ const ReviewBooking = () => {
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
-      <div className="container py-4 sm:py-6 md:py-8 flex-1 px-4">
+      <div className="container py-4 sm:py-6 md:py-8 flex-1 px-6 sm:px-8 md:px-12 lg:px-16">
         <div className="max-w-7xl mx-auto">
           <h1 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6 md:mb-8">Review Your Booking</h1>
           <div className="grid lg:grid-cols-3 gap-6">
@@ -308,12 +334,7 @@ const ReviewBooking = () => {
             <div className="lg:col-span-2 space-y-6">
               {/* Cab Details with Image Carousel */}
               <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Car className="h-5 w-5 text-primary" />
-                    Cab Details
-                  </CardTitle>
-                </CardHeader>
+                
                 <CardContent>
                   <div className="grid md:grid-cols-5 gap-6">
                     {/* Image Carousel */}
@@ -357,7 +378,7 @@ const ReviewBooking = () => {
                       <div className="flex items-center gap-2">
                         <div className="flex items-center gap-1 bg-primary/10 px-2 py-1 rounded">
                           <Star className="h-4 w-4 fill-primary text-primary" />
-                          <span className="font-semibold">{cabDetails.ratingAvarage || 5.0}</span>
+                          <span className="font-semibold">{cabRating}</span>
                         </div>
                         <span className="text-sm text-muted-foreground">
                           (1 review)
@@ -373,7 +394,7 @@ const ReviewBooking = () => {
                           <IndianRupee className="h-4 w-4 text-primary" />
                           <div>
                             <p className="text-xs text-muted-foreground">Extra km fare</p>
-                            <p className="font-medium">INR {cabDetails.perKmRate} per km</p>
+                            <p className="font-medium">₹{perKmRate.toFixed(2)} per km</p>
                           </div>
                         </div>
                         <div className="flex items-center gap-2 text-sm">
@@ -460,7 +481,10 @@ const ReviewBooking = () => {
                       placeholder="Enter your phone number"
                       value={formData.phone}
                       onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                      disabled
+                      className="bg-muted cursor-not-allowed"
                     />
+                    <p className="text-xs text-muted-foreground">Phone number is linked to your account</p>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="email">Email Address</Label>
@@ -616,7 +640,7 @@ const ReviewBooking = () => {
                   <div className="border-t pt-4">
                     <Label className="text-base font-semibold mb-3 block">Select Payment Type</Label>
                     <RadioGroup value={paymentType} onValueChange={(value: "token" | "full") => setPaymentType(value)} className="space-y-3">
-                      <div className="flex items-center space-x-2 border rounded-lg p-3 cursor-pointer hover:bg-accent" onClick={() => setPaymentType("token")}>
+                      <div className="flex items-center space-x-2 border rounded-lg p-3 cursor-pointer" onClick={() => setPaymentType("token")}>
                         <RadioGroupItem value="token" id="token" />
                         <Label htmlFor="token" className="flex-1 cursor-pointer">
                           <div className="flex justify-between items-start">
@@ -634,7 +658,7 @@ const ReviewBooking = () => {
                         </Label>
                       </div>
                       
-                      <div className="flex items-center space-x-2 border rounded-lg p-3 cursor-pointer hover:bg-accent" onClick={() => setPaymentType("full")}>
+                      <div className="flex items-center space-x-2 border rounded-lg p-3 cursor-pointer" onClick={() => setPaymentType("full")}>
                         <RadioGroupItem value="full" id="full" />
                         <Label htmlFor="full" className="flex-1 cursor-pointer">
                           <div className="flex justify-between items-start">
