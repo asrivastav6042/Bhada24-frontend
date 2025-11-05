@@ -196,7 +196,7 @@ export default function BookingForm({ loading, setLoading }) {
                     : "pb-1"
                 }`}
                 style={activeTab === tab.key
-                  ? { borderBottomColor: COLORS.primary, color: '#222' }
+                  ? { borderBottomColor: COLORS.primary, color: COLORS.primary }
                   : { color: '#222' }}
               >
                 {tab.icon}

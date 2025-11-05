@@ -198,7 +198,7 @@ const Home = () => {
       <section
   className="relative py-4 sm:py-6 md:py-8"
   style={{
-    backgroundColor: "#f3f4f6" // Light gray (Tailwind's gray-100)
+    backgroundColor: COLORS.lightGray // Light gray (Tailwind's gray-100)
   }}
 >
   {/* Remove any other background layers */}

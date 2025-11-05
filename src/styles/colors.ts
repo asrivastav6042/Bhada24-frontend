@@ -8,5 +8,5 @@ export const COLORS = {
   primary: 'rgba(235, 11, 11, 1)', // Red
   //primary: 'rgba(235, 11, 11, 1)', // Red
   green: '#008000',
-  lightGray: '#f5f5f5',
+  lightGray: '#0450f3ff',
 };
