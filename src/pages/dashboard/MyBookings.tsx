@@ -1,173 +1,243 @@
-import { useState } from "react";
-import { Car, Calendar, MapPin, Download, Eye, X } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { Car, Calendar, MapPin, Download, X, Loader2, Star } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { generateReceipt } from "@/utils/generateReceipt";
+import { getBookingsByUserId, updateBookingStatus } from "@/apiconfig/api";
+import { useApiCall } from "@/hooks/useApiCall";
+
+interface PaymentDetails {
+  paymentId: string;
+  paymentMethod: string;
+  transactionId: string;
+  transactionDate: string;
+  amount: number;
+  status: string;
+}
 
 interface Booking {
-  id: string;
-  carName: string;
-  carImage: string;
-  from: string;
-  to: string;
-  date: string;
-  amount: number;
-  status: "upcoming" | "completed" | "cancelled";
   bookingId: string;
+  userId: string;
+  userName: string;
+  userMobile: string;
+  userEmail: string | null;
+  cabId: string;
+  cabName: string;
+  cabBrand: string;
+  cabType: string;
+  cabNumber: string;
+  cabManufacturingYear: string;
+  cabColor: string;
+  cabInsurance: string;
+  cabCapacity: string;
+  cabImageUrl: string;
+  cabCity: string;
+  cabState: string;
+  fuelType: string;
+  ac: boolean;
+  pickupLocation: string;
+  dropLocation: string;
+  pickupDateTime: string;
+  dropDateTime: string;
+  distanceInKm: number;
+  fare: number;
+  promoDiscount: number;
+  finalFare: number;
+  gstOnFinalFare: number;
+  totalFareWithGst: number;
+  commissionAmount: number;
+  gstOnCommission: number;
+  driverPayout: number;
+  profitAmount: number;
+  tokenAmount: number;
+  balanceAmount: number;
+  bookingStatus: string;
+  paymentStatus: string;
+  paymentDetails: PaymentDetails;
+  driverName: string;
+  driverContact: string;
+  driverLicense: string;
+  address: string;
+  statusUpdatedBy: string;
+  insertedAt: string;
+  updatedAt: string;
 }
 
 const MyBookings = () => {
-  const [bookings] = useState<Booking[]>([
-    {
-      id: "1",
-      carName: "Toyota Innova Crysta",
-      carImage: "https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=400",
-      from: "Mumbai",
-      to: "Pune",
-      date: "2024-01-15",
-      amount: 2500,
-      status: "upcoming",
-      bookingId: "BH2401001",
-    },
-    {
-      id: "2",
-      carName: "Maruti Swift Dzire",
-      carImage: "https://images.unsplash.com/photo-1583121274602-3e2820c69888?w=400",
-      from: "Delhi",
-      to: "Agra",
-      date: "2024-01-10",
-      amount: 1800,
-      status: "completed",
-      bookingId: "BH2401002",
-    },
-    {
-      id: "3",
-      carName: "Honda City",
-      carImage: "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=400",
-      from: "Bangalore",
-      to: "Mysore",
-      date: "2024-01-08",
-      amount: 2200,
-      status: "completed",
-      bookingId: "BH2401003",
-    },
-  ]);
+  const navigate = useNavigate();
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const { execute, loading } = useApiCall();
 
-  const handleDownloadReceipt = (booking: Booking) => {
-    generateReceipt({
-      bookingId: booking.bookingId,
-      cabName: booking.carName,
-      cabType: "Sedan",
-      regNo: "DL-01-AB-1234",
-      from: booking.from,
-      to: booking.to,
-      date: booking.date,
-      passengerName: localStorage.getItem("userName") || "User",
-      passengerPhone: localStorage.getItem("userPhone") || "",
-      passengerEmail: "user@example.com",
-      baseFare: booking.amount,
-      gst: booking.amount * 0.18,
-      totalFare: booking.amount * 1.18,
-      paymentMethod: "UPI",
-      paymentDate: new Date().toLocaleDateString(),
+  useEffect(() => {
+    fetchBookings();
+  }, []);
+
+  const fetchBookings = async () => {
+    const userId = localStorage.getItem("userId");
+    if (!userId) {
+      toast.error("User ID not found. Please login again.");
+      return;
+    }
+
+    const result = await execute(async () => {
+      const response = await getBookingsByUserId(userId);
+      return response;
     });
-    toast.success("Receipt downloaded successfully!");
+
+    if (result && result.responseCode === 200 && result.responseData) {
+      // The API returns nested array structure: [[booking1, booking2, ...]]
+      const flattenedBookings = result.responseData.flat();
+      setBookings(flattenedBookings);
+    }
   };
 
-  const handleViewDetails = (bookingId: string) => {
-    toast.info(`Viewing details for booking ${bookingId}`);
+  const handleCardClick = (booking: Booking) => {
+    navigate(`/dashboard/bookings/${booking.bookingId}`, { state: { booking } });
   };
 
-  const handleCancelBooking = (bookingId: string) => {
-    toast.success(`Booking ${bookingId} cancelled successfully!`);
+  const handleCancelBooking = async (booking: Booking, e: React.MouseEvent) => {
+    e.stopPropagation();
+
+    // Confirm cancellation
+    if (!confirm("Are you sure you want to cancel this booking?")) {
+      return;
+    }
+
+    const cancelPayload = {
+      bookingId: booking.bookingId,
+      cabId: booking.cabId,
+      bookingStatus: "cancelled",
+      paymentStatus: booking.paymentStatus,
+      role: "USER",
+    };
+
+    const result = await execute(async () => {
+      const response = await updateBookingStatus(cancelPayload);
+      return response;
+    });
+
+    if (result && result.responseCode === 200) {
+      toast.success("Booking cancelled successfully!");
+      // Refresh bookings list
+      fetchBookings();
+    } else {
+      toast.error("Failed to cancel booking. Please try again.");
+    }
   };
 
-  const upcomingBookings = bookings.filter((b) => b.status === "upcoming");
-  const completedBookings = bookings.filter((b) => b.status === "completed" || b.status === "cancelled");
+  // Filter bookings based on status
+  const upcomingBookings = bookings.filter(
+    (b) => {
+      const status = b.bookingStatus.toUpperCase();
+      return status === "PENDING" || status === "CONFIRMED";
+    }
+  );
+  const completedBookings = bookings.filter(
+    (b) => b.bookingStatus.toUpperCase() === "COMPLETED"
+  );
+  const cancelledBookings = bookings.filter(
+    (b) => b.bookingStatus.toUpperCase() === "CANCELLED"
+  );
+
+  const getStatusBadgeVariant = (status: string) => {
+    const upperStatus = status.toUpperCase();
+    if (upperStatus === "PENDING" || upperStatus === "CONFIRMED") {
+      return "default";
+    } else if (upperStatus === "COMPLETED") {
+      return "secondary";
+    } else {
+      return "destructive";
+    }
+  };
 
   const BookingCard = ({ booking }: { booking: Booking }) => (
-    <Card className="hover:shadow-lg transition-shadow">
-      <CardContent className="p-4 sm:p-6">
-        <div className="flex flex-col sm:flex-row gap-4">
-          <img
-            src={booking.carImage}
-            alt={booking.carName}
-            className="w-full sm:w-32 h-48 sm:h-24 object-cover rounded-lg"
-          />
-          <div className="flex-1 space-y-2 min-w-0">
-            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
-              <div className="min-w-0">
-                <h3 className="font-semibold text-base sm:text-lg flex items-center gap-2">
-                  <Car className="h-4 w-4 sm:h-5 sm:w-5 text-primary shrink-0" />
-                  <span className="truncate">{booking.carName}</span>
-                </h3>
-                <p className="text-xs sm:text-sm text-muted-foreground truncate">
-                  Booking ID: {booking.bookingId}
-                </p>
-              </div>
-              <Badge
-                className="self-start shrink-0"
-                variant={
-                  booking.status === "upcoming"
-                    ? "default"
-                    : booking.status === "completed"
-                    ? "secondary"
-                    : "destructive"
-                }
+    <Card className="hover:shadow-lg transition-all">
+      <CardContent className="p-4">
+        <div className="space-y-3">
+          {/* Image and Status */}
+          <div className="relative">
+            <img
+              src={booking.cabImageUrl}
+              alt={booking.cabName}
+              className="w-full h-40 object-cover rounded-lg"
+            />
+            <Badge
+              className="absolute top-2 right-2"
+              variant={getStatusBadgeVariant(booking.bookingStatus)}
+            >
+              {booking.bookingStatus}
+            </Badge>
+          </div>
+
+          {/* Cab Info */}
+          <div>
+            <h3 className="font-semibold text-base flex items-center gap-2 truncate">
+              <Car className="h-4 w-4 text-primary shrink-0" />
+              <span className="truncate">{booking.cabName}</span>
+            </h3>
+            <p className="text-xs text-muted-foreground truncate">
+              {booking.cabBrand} • {booking.cabType}
+            </p>
+          </div>
+
+          {/* Route */}
+          <div className="flex items-start gap-2 text-sm">
+            <MapPin className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-medium truncate">{booking.pickupLocation}</p>
+              <p className="text-xs text-muted-foreground">to</p>
+              <p className="text-xs font-medium truncate">{booking.dropLocation}</p>
+            </div>
+          </div>
+
+          {/* Date */}
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <Calendar className="h-3 w-3 shrink-0" />
+            <span>{new Date(booking.pickupDateTime).toLocaleDateString()}</span>
+          </div>
+
+          {/* Booking ID */}
+          <p className="text-xs text-muted-foreground truncate">
+            ID: {booking.bookingId}
+          </p>
+
+          {/* Price */}
+          <div className="pt-2 border-t">
+            <p className="text-lg font-bold text-primary">
+              ₹{booking.totalFareWithGst.toFixed(2)}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {booking.paymentStatus === "paid" ? "Fully Paid" : `Token: ₹${booking.tokenAmount}`}
+            </p>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex gap-2 pt-2">
+            <Button
+              variant="outline"
+              className="flex-1 text-xs"
+              onClick={() => handleCardClick(booking)}
+            >
+              <Download className="h-3 w-3 mr-1" />
+              View Details
+            </Button>
+            
+            {(() => {
+              const status = booking.bookingStatus.toUpperCase();
+              return (status === "PENDING" || status === "CONFIRMED");
+            })() && (
+              <Button
+                variant="destructive"
+                className="flex-1 text-xs"
+                onClick={(e) => handleCancelBooking(booking, e)}
               >
-                {booking.status}
-              </Badge>
-            </div>
-
-            <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground">
-              <MapPin className="h-3 w-3 sm:h-4 sm:w-4 shrink-0" />
-              <span className="truncate">
-                {booking.from} → {booking.to}
-              </span>
-            </div>
-
-            <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground">
-              <Calendar className="h-3 w-3 sm:h-4 sm:w-4 shrink-0" />
-              <span>{new Date(booking.date).toLocaleDateString()}</span>
-            </div>
-
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2">
-              <p className="text-lg sm:text-xl font-bold text-primary">₹{booking.amount}</p>
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => handleViewDetails(booking.bookingId)}
-                  className="flex-1 sm:flex-none text-xs sm:text-sm"
-                >
-                  <Eye className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
-                  Details
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => handleDownloadReceipt(booking)}
-                  className="flex-1 sm:flex-none text-xs sm:text-sm"
-                >
-                  <Download className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
-                  Receipt
-                </Button>
-                {booking.status === "upcoming" && (
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    onClick={() => handleCancelBooking(booking.bookingId)}
-                    className="w-full sm:w-auto text-xs sm:text-sm"
-                  >
-                    <X className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
-                    Cancel
-                  </Button>
-                )}
-              </div>
-            </div>
+                <X className="h-3 w-3 mr-1" />
+                Cancel
+              </Button>
+            )}
           </div>
         </div>
       </CardContent>
@@ -178,46 +248,79 @@ const MyBookings = () => {
     <div className="max-w-6xl">
       <h1 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6">My Bookings</h1>
 
-      <Tabs defaultValue="upcoming" className="w-full">
-        <TabsList className="grid w-full sm:max-w-md grid-cols-2">
-          <TabsTrigger value="upcoming" className="text-xs sm:text-sm">
-            Upcoming Bookings
-          </TabsTrigger>
-          <TabsTrigger value="history" className="text-xs sm:text-sm">
-            Booking History
-          </TabsTrigger>
-        </TabsList>
+      {loading ? (
+        <Card>
+          <CardContent className="p-12 text-center">
+            <Loader2 className="h-12 w-12 mx-auto mb-4 animate-spin text-primary" />
+            <p className="text-muted-foreground">Loading bookings...</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <Tabs defaultValue="upcoming" className="w-full">
+          <TabsList className="grid w-full sm:max-w-2xl grid-cols-3">
+            <TabsTrigger value="upcoming" className="text-xs sm:text-sm">
+              Upcoming ({upcomingBookings.length})
+            </TabsTrigger>
+            <TabsTrigger value="completed" className="text-xs sm:text-sm">
+              Completed ({completedBookings.length})
+            </TabsTrigger>
+            <TabsTrigger value="cancelled" className="text-xs sm:text-sm">
+              Cancelled ({cancelledBookings.length})
+            </TabsTrigger>
+          </TabsList>
 
-        <TabsContent value="upcoming" className="space-y-4 mt-6">
-          {upcomingBookings.length === 0 ? (
-            <Card>
-              <CardContent className="p-12 text-center text-muted-foreground">
-                <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>No upcoming bookings</p>
-              </CardContent>
-            </Card>
-          ) : (
-            upcomingBookings.map((booking) => (
-              <BookingCard key={booking.id} booking={booking} />
-            ))
-          )}
-        </TabsContent>
+          <TabsContent value="upcoming" className="mt-6">
+            {upcomingBookings.length === 0 ? (
+              <Card>
+                <CardContent className="p-12 text-center text-muted-foreground">
+                  <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>No upcoming bookings</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {upcomingBookings.map((booking) => (
+                  <BookingCard key={booking.bookingId} booking={booking} />
+                ))}
+              </div>
+            )}
+          </TabsContent>
 
-        <TabsContent value="history" className="space-y-4 mt-6">
-          {completedBookings.length === 0 ? (
-            <Card>
-              <CardContent className="p-12 text-center text-muted-foreground">
-                <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>No booking history</p>
-              </CardContent>
-            </Card>
-          ) : (
-            completedBookings.map((booking) => (
-              <BookingCard key={booking.id} booking={booking} />
-            ))
-          )}
-        </TabsContent>
-      </Tabs>
+          <TabsContent value="completed" className="mt-6">
+            {completedBookings.length === 0 ? (
+              <Card>
+                <CardContent className="p-12 text-center text-muted-foreground">
+                  <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>No completed bookings</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {completedBookings.map((booking) => (
+                  <BookingCard key={booking.bookingId} booking={booking} />
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="cancelled" className="mt-6">
+            {cancelledBookings.length === 0 ? (
+              <Card>
+                <CardContent className="p-12 text-center text-muted-foreground">
+                  <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>No cancelled bookings</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {cancelledBookings.map((booking) => (
+                  <BookingCard key={booking.bookingId} booking={booking} />
+                ))}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
+      )}
     </div>
   );
 };

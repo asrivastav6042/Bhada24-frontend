@@ -13,6 +13,7 @@ import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import MyProfile from "./pages/dashboard/MyProfile";
 import MyBookings from "./pages/dashboard/MyBookings";
+import BookingDetails from "./pages/dashboard/BookingDetails";
 import Rating from "./pages/dashboard/Rating";
 import Settings from "./pages/dashboard/Settings";
 import NotFound from "./pages/NotFound";
@@ -37,6 +38,7 @@ const App = () => (
           <Route path="/dashboard" element={<Dashboard />}>
             <Route path="profile" element={<MyProfile />} />
             <Route path="bookings" element={<MyBookings />} />
+            <Route path="bookings/:bookingId" element={<BookingDetails />} />
             <Route path="rating" element={<Rating />} />
             <Route path="settings" element={<Settings />} />
           </Route>

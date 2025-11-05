@@ -1,113 +1,130 @@
-import { useState } from "react";
-import { Star, ThumbsUp } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Star, Loader2, Car, Calendar } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { getUserRatings } from "@/apiconfig/api";
+import { useApiCall } from "@/hooks/useApiCall";
+
+interface CabRating {
+  ratingId: string;
+  bookingId: string;
+  cabId: string;
+  userId: string;
+  userName: string;
+  cabName: string;
+  cabType: string;
+  cabCapacity: string;
+  cabImageUrl: string;
+  driverName: string;
+  rating: number;
+  comment: string;
+  insertedAt: string;
+}
 
 const Rating = () => {
-  const [selectedRating, setSelectedRating] = useState(0);
-  const [feedback, setFeedback] = useState("");
+  const [userRatings, setUserRatings] = useState<CabRating[]>([]);
+  const { execute, loading } = useApiCall();
 
-  const handleSubmitRating = () => {
-    if (selectedRating === 0) {
-      toast.error("Please select a rating");
+  useEffect(() => {
+    fetchUserRatings();
+  }, []);
+
+  const fetchUserRatings = async () => {
+    const userId = localStorage.getItem("userId");
+    if (!userId) {
+      toast.error("User ID not found. Please login again.");
       return;
     }
-    toast.success("Thank you for your feedback!");
-    setSelectedRating(0);
-    setFeedback("");
+
+    const result = await execute(async () => {
+      const response = await getUserRatings(userId);
+      return response;
+    });
+
+    if (result && result.responseCode === 200 && result.responseData) {
+      setUserRatings(result.responseData);
+    }
   };
 
   return (
-    <div className="max-w-2xl">
-      <h1 className="text-3xl font-bold mb-6">Rate Your Experience</h1>
+    <div className="max-w-4xl">
+      <h3 className="text-2xl sm:text-3xl font-bold mb-6">My Ratings ({userRatings.length}) </h3>
 
       <Card>
-        <CardHeader>
-          <CardTitle>How was your ride?</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="text-center space-y-4">
-            <p className="text-muted-foreground">
-              Your feedback helps us improve our service
-            </p>
-            <div className="flex justify-center gap-2">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <button
-                  key={star}
-                  onClick={() => setSelectedRating(star)}
-                  className="transition-transform hover:scale-110"
+        <CardContent>
+          {loading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : userRatings.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <Star className="h-12 w-12 mx-auto mb-3 opacity-50" />
+              <p>No ratings yet</p>
+              <p className="text-sm">Rate your completed bookings to see them here</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {userRatings.map((rating) => (
+                <div
+                  key={rating.ratingId}
+                  className="flex flex-col sm:flex-row gap-4 p-4 border rounded-lg hover:shadow-md transition-shadow"
                 >
-                  <Star
-                    className={`h-12 w-12 ${
-                      star <= selectedRating
-                        ? "fill-yellow-400 text-yellow-400"
-                        : "text-gray-300"
-                    }`}
-                  />
-                </button>
+                  {/* Cab Image */}
+                  <div className="sm:w-24 sm:h-24 flex-shrink-0">
+                    <img
+                      src={rating.cabImageUrl}
+                      alt={rating.cabName}
+                      className="w-full h-24 sm:h-full object-cover rounded-md"
+                    />
+                  </div>
+
+                  {/* Rating Details */}
+                  <div className="flex-1 space-y-2">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <p className="font-semibold flex items-center gap-2">
+                          <Car className="h-4 w-4 text-primary" />
+                          {rating.cabName}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {rating.cabType} • {rating.cabCapacity} Seater
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Driver: {rating.driverName}
+                        </p>
+                      </div>
+                      <div className="flex gap-1">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <Star
+                            key={star}
+                            className={`h-4 w-4 ${
+                              star <= rating.rating
+                                ? "fill-yellow-400 text-yellow-400"
+                                : "text-gray-300"
+                            }`}
+                          />
+                        ))}
+                      </div>
+                    </div>
+
+                    {rating.comment && (
+                      <div className="bg-muted/50 p-3 rounded-md">
+                        <p className="text-sm italic">"{rating.comment}"</p>
+                      </div>
+                    )}
+
+                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                      <span className="flex items-center gap-1">
+                        <Calendar className="h-3 w-3" />
+                        {new Date(rating.insertedAt).toLocaleDateString()}
+                      </span>
+                      <span>Booking ID: {rating.bookingId}</span>
+                    </div>
+                  </div>
+                </div>
               ))}
             </div>
-            {selectedRating > 0 && (
-              <p className="text-lg font-medium">
-                {selectedRating === 5
-                  ? "Excellent!"
-                  : selectedRating === 4
-                  ? "Great!"
-                  : selectedRating === 3
-                  ? "Good"
-                  : selectedRating === 2
-                  ? "Fair"
-                  : "Poor"}
-              </p>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-sm font-medium">
-              Share your feedback (Optional)
-            </label>
-            <Textarea
-              placeholder="Tell us about your experience..."
-              value={feedback}
-              onChange={(e) => setFeedback(e.target.value)}
-              rows={4}
-            />
-          </div>
-
-          <Button
-            onClick={handleSubmitRating}
-            className="w-full"
-            disabled={selectedRating === 0}
-          >
-            <ThumbsUp className="h-4 w-4 mr-2" />
-            Submit Rating
-          </Button>
-        </CardContent>
-      </Card>
-
-      <Card className="mt-6">
-        <CardHeader>
-          <CardTitle>Your Ratings</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between p-4 border rounded-lg">
-              <div>
-                <p className="font-medium">Recent Booking - BH2401002</p>
-                <p className="text-sm text-muted-foreground">Delhi → Agra</p>
-              </div>
-              <div className="flex gap-1">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <Star
-                    key={star}
-                    className="h-5 w-5 fill-yellow-400 text-yellow-400"
-                  />
-                ))}
-              </div>
-            </div>
-          </div>
+          )}
         </CardContent>
       </Card>
     </div>
