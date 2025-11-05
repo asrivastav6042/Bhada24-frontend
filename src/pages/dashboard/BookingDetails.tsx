@@ -15,6 +15,7 @@ import {
   Clock,
   Star,
   ArrowLeft,
+  AlertTriangle,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -26,6 +27,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
@@ -112,6 +123,7 @@ const BookingDetails = () => {
   const booking = location.state?.booking as Booking | undefined;
 
   const [isRatingDialogOpen, setIsRatingDialogOpen] = useState(false);
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [userRatings, setUserRatings] = useState<CabRating[]>([]);
   const [rating, setRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
@@ -224,20 +236,19 @@ const BookingDetails = () => {
     toast.success("Receipt downloaded successfully!");
   };
 
-  const handleCancelBooking = async (bookingId: string) => {
+  const handleCancelBooking = () => {
+    setCancelDialogOpen(true);
+  };
+
+  const confirmCancelBooking = async () => {
     if (!booking) return;
 
-    // Confirm cancellation
-    if (!confirm("Are you sure you want to cancel this booking?")) {
-      return;
-    }
-
     const cancelPayload = {
-      bookingId: bookingId,
+      bookingId: booking.bookingId,
       cabId: booking.cabId,
       bookingStatus: "cancelled",
       paymentStatus: booking.paymentStatus,
-      role: "USER", // or "ADMIN" depending on who is canceling
+      role: "USER",
     };
 
     const result = await execute(async () => {
@@ -247,6 +258,7 @@ const BookingDetails = () => {
 
     if (result && result.responseCode === 200) {
       toast.success("Booking cancelled successfully!");
+      setCancelDialogOpen(false);
       // Navigate back to bookings page after successful cancellation
       setTimeout(() => {
         navigate("/dashboard/bookings");
@@ -401,7 +413,7 @@ const BookingDetails = () => {
                     variant="destructive"
                     size="sm"
                     className="w-full"
-                    onClick={() => handleCancelBooking(booking.bookingId)}
+                    onClick={handleCancelBooking}
                   >
                     <X className="h-3.5 w-3.5 mr-2" />
                     Cancel Booking
@@ -590,9 +602,9 @@ const BookingDetails = () => {
 
               {/* Payment Breakdown */}
               <div className="grid grid-cols-2 gap-3">
-                <div className="bg-blue-50 dark:bg-blue-950 p-3 rounded-lg">
+                <div className="bg-primary/10 p-3 rounded-lg">
                   <p className="text-muted-foreground text-xs">Token Paid</p>
-                  <p className="font-bold text-blue-600 dark:text-blue-400">
+                  <p className="font-bold text-primary">
                     ₹{booking.tokenAmount.toFixed(2)}
                   </p>
                 </div>
@@ -768,6 +780,61 @@ const BookingDetails = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Cancel Booking Confirmation Dialog */}
+      <AlertDialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+              <AlertDialogTitle>Cancel Booking?</AlertDialogTitle>
+            </div>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p>Are you sure you want to cancel this booking?</p>
+                {booking && (
+                  <div className="bg-muted p-3 rounded-md text-sm space-y-1">
+                    <p>
+                      <span className="font-medium">Booking ID:</span>{" "}
+                      {booking.bookingId}
+                    </p>
+                    <p>
+                      <span className="font-medium">Cab:</span>{" "}
+                      {booking.cabName} ({booking.cabNumber})
+                    </p>
+                    <p>
+                      <span className="font-medium">Route:</span>{" "}
+                      {booking.pickupLocation} → {booking.dropLocation}
+                    </p>
+                    <p>
+                      <span className="font-medium">Total Amount:</span> ₹
+                      {booking.totalFareWithGst.toFixed(2)}
+                    </p>
+                  </div>
+                )}
+                <div className="bg-destructive/10 border border-destructive/20 p-3 rounded-md">
+                  <p className="text-destructive font-semibold text-sm flex items-start gap-2">
+                    <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                    <span>
+                      The token amount of ₹{booking?.tokenAmount || 0} will NOT
+                      be refunded upon cancellation.
+                    </span>
+                  </p>
+                </div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep Booking</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmCancelBooking}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              Yes, Cancel Booking
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

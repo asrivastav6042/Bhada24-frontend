@@ -75,6 +75,37 @@ const FilterSidebar = ({
   };
 
   return (
+  <>
+    <style>
+      {`
+        input[type="radio"] {
+          appearance: none;
+          width: 18px;
+          height: 18px;
+          border: 2px solid #ccc;
+          border-radius: 50%;
+          outline: none;
+          cursor: pointer;
+          position: relative;
+        }
+        
+        input[type="radio"]:checked {
+          border-color: ${COLORS.primary};
+        }
+        
+        input[type="radio"]:checked::before {
+          content: "";
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          width: 10px;
+          height: 10px;
+          border-radius: 50%;
+          background-color: ${COLORS.primary};
+        }
+      `}
+    </style>
   <Card className="p-6 space-y-6 sticky top-20">
       <div>
         <h3 className="font-semibold text-lg mb-4">Filters</h3>
@@ -216,7 +247,7 @@ const FilterSidebar = ({
                 id={type}
                 checked={selectedTypes.includes(type)}
                 onCheckedChange={() => toggleType(type)}
-                style={{ borderColor: selectedTypes.includes(type) ? COLORS.red : '#222', backgroundColor: selectedTypes.includes(type) ? COLORS.red : 'transparent' }}
+                style={{ borderColor: selectedTypes.includes(type) ? COLORS.primary : '#222', backgroundColor: selectedTypes.includes(type) ? COLORS.primary : 'transparent' }}
               />
               <label
                 htmlFor={type}
@@ -240,7 +271,7 @@ const FilterSidebar = ({
                 id={`seats-${seats}`}
                 checked={selectedSeats.includes(seats)}
                 onCheckedChange={() => toggleSeats(seats)}
-                style={{ borderColor: selectedSeats.includes(seats) ? COLORS.red : '#222', backgroundColor: selectedSeats.includes(seats) ? COLORS.red : 'transparent' }}
+                style={{ borderColor: selectedSeats.includes(seats) ? COLORS.primary : '#222', backgroundColor: selectedSeats.includes(seats) ? COLORS.primary : 'transparent' }}
               />
               <label
                 htmlFor={`seats-${seats}`}
@@ -262,7 +293,7 @@ const FilterSidebar = ({
             id="ac"
             checked={acOnly}
             onCheckedChange={(checked) => setAcOnly(checked as boolean)}
-            style={{ borderColor: acOnly ? COLORS.red : '#222', backgroundColor: acOnly ? COLORS.red : 'transparent' }}
+            style={{ borderColor: acOnly ? COLORS.primary : '#222', backgroundColor: acOnly ? COLORS.primary : 'transparent' }}
           />
           <label
             htmlFor="ac"
@@ -274,6 +305,7 @@ const FilterSidebar = ({
         </div>
       </div>
     </Card>
+  </>
   );
 };
 

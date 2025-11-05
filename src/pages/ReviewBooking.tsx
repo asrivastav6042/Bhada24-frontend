@@ -16,6 +16,7 @@ import axios from "axios";
 import { getProfileByMobile } from "@/services/userService";
 import { getAllOffers, startBooking } from "@/apiconfig/api";
 import { useApiCall } from "@/hooks/useApiCall";
+import { showInAppNotification } from "@/components/notification/notificationHelper";
 
 interface Offer {
   offerId: string;
@@ -507,6 +508,13 @@ const ReviewBooking = () => {
         const response = await startBooking(bookingData);
         console.log("Booking saved successfully:", response);
         toast.success("Booking confirmed successfully!");
+        
+        // Show in-app notification
+        showInAppNotification(
+          "Booking Confirmed! 🎉",
+          `Your booking for ${cab.cabName} has been confirmed successfully. Booking ID: ${bookingId}`,
+          { type: "booking_success", bookingId, cabName: cab.cabName }
+        );
       } catch (apiError) {
         // Backend API failed, but payment was successful
         console.error("Backend API error (payment already successful):", apiError);
@@ -519,6 +527,13 @@ const ReviewBooking = () => {
         toast.warning("Payment successful! Booking will be confirmed shortly.", {
           duration: 5000,
         });
+        
+        // Show in-app notification even if backend fails
+        showInAppNotification(
+          "Payment Successful! ✅",
+          `Your payment was successful. Booking ID: ${bookingId}. We're processing your booking.`,
+          { type: "payment_success", bookingId }
+        );
       }
       
       // Store booking data in session for receipt (regardless of backend status)
@@ -938,12 +953,12 @@ const ReviewBooking = () => {
                     
                     {/* Show remaining amount info for token payment */}
                     {paymentType === "token" && remainingAmount > 0 && (
-                      <div className="mt-3 bg-blue-50 border border-blue-200 rounded-lg p-3">
+                      <div className="mt-3 bg-primary/10 border border-primary/20 rounded-lg p-3">
                         <div className="flex items-start gap-2">
-                          <div className="text-blue-600 mt-0.5">ℹ️</div>
+                          <div className="text-primary mt-0.5">ℹ️</div>
                           <div className="flex-1">
-                            <p className="text-sm font-medium text-blue-900">Remaining Payment</p>
-                            <p className="text-xs text-blue-700 mt-1">
+                            <p className="text-sm font-medium text-primary">Remaining Payment</p>
+                            <p className="text-xs text-primary/80 mt-1">
                               You will pay <span className="font-semibold">₹{remainingAmount.toFixed(2)}</span> to the driver after completing the trip.
                             </p>
                           </div>

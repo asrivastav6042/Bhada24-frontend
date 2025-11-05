@@ -196,56 +196,60 @@ const Home = () => {
 
       {/* Hero Section */}
       <section
-        className="relative py-4 sm:py-6 md:py-8"
-        style={{
-          background: `linear-gradient(to bottom, ${COLORS.primary}, ${COLORS.primary}66 40%, #f8fafc)`
-        }}
-      >
-        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?w=1200&h=800&fit=crop')] bg-cover bg-center opacity-5" />
-        <div className="container relative z-10 px-4">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="text-center mb-6 sm:mb-8"
-          >
-            {/* You can add a heading or tagline here if desired */}
-          </motion.div>
+  className="relative py-4 sm:py-6 md:py-8"
+  style={{
+    backgroundColor: "#f3f4f6" // Light gray (Tailwind's gray-100)
+  }}
+>
+  {/* Remove any other background layers */}
+  <div className="container relative z-10 px-4">
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6 }}
+      className="text-center mb-6 sm:mb-8"
+    >
+      {/* Optional heading or tagline */}
+    </motion.div>
 
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-            className="max-w-4xl mx-auto"
-          >
-            {activeService === "cabs" && <BookingForm loading={loading} setLoading={setLoading} />}
-            {activeService === "dj-sound" && (
-              <div className="bg-card rounded-2xl shadow-xl p-6 md:p-8 text-center">
-                <h3 className="text-2xl font-bold mb-4">DJ and Sound Services</h3>
-                <p className="text-muted-foreground mb-6">
-                  Professional DJ and sound system rental for your events
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  Coming soon! Contact us for bookings.
-                </p>
-              </div>
-            )}
-            {activeService === "event" && (
-              <div className="bg-card rounded-2xl shadow-xl p-6 md:p-8 text-center">
-                <h3 className="text-2xl font-bold mb-4">Event Management</h3>
-                <p className="text-muted-foreground mb-6">
-                  Complete event planning and management services
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  Coming soon! Contact us for bookings.
-                </p>
-              </div>
-            )}
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6, delay: 0.2 }}
+      className="max-w-4xl mx-auto"
+    >
+      {activeService === "cabs" && (
+        <BookingForm loading={loading} setLoading={setLoading} />
+      )}
 
-            {/* Example usage for primary color instead of red */}
-          </motion.div>
+      {activeService === "dj-sound" && (
+        <div className="bg-card rounded-2xl shadow-xl p-6 md:p-8 text-center">
+          <h3 className="text-2xl font-bold mb-4">DJ and Sound Services</h3>
+          <p className="text-muted-foreground mb-6">
+            Professional DJ and sound system rental for your events
+          </p>
+          <p className="text-sm text-muted-foreground">
+            Coming soon! Contact us for bookings.
+          </p>
         </div>
-      </section>
+      )}
+
+      {activeService === "event" && (
+        <div className="bg-card rounded-2xl shadow-xl p-6 md:p-8 text-center">
+          <h3 className="text-2xl font-bold mb-4">Event Management</h3>
+          <p className="text-muted-foreground mb-6">
+            Complete event planning and management services
+          </p>
+          <p className="text-sm text-muted-foreground">
+            Coming soon! Contact us for bookings.
+          </p>
+        </div>
+      )}
+    </motion.div>
+  </div>
+</section>
+
+
 
       {/* Offers Section */}
       <section className="py-12 bg-secondary/20">

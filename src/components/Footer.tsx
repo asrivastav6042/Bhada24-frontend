@@ -38,10 +38,9 @@ const Footer = () => {
             <h3 className="font-semibold mb-4">Quick Links</h3>
             <ul className="space-y-2 text-sm">
               <li><Link to="/" className="text-muted-foreground hover:text-primary transition-colors">Home</Link></li>
-              <li><Link to="/cabs" className="text-muted-foreground hover:text-primary transition-colors">Book a Cab</Link></li>
-              <li><Link to="#" className="text-muted-foreground hover:text-primary transition-colors">About Us</Link></li>
-              <li><Link to="#" className="text-muted-foreground hover:text-primary transition-colors">Services</Link></li>
-              <li><Link to="#" className="text-muted-foreground hover:text-primary transition-colors">Contact</Link></li>
+              <li><Link to="/about-us" className="text-muted-foreground hover:text-primary transition-colors">About Us</Link></li>
+              <li><Link to="/our-services" className="text-muted-foreground hover:text-primary transition-colors">Our Services</Link></li>
+              <li><Link to="/contact-us" className="text-muted-foreground hover:text-primary transition-colors">Contact Us</Link></li>
             </ul>
           </div>
 
@@ -49,11 +48,10 @@ const Footer = () => {
           <div>
             <h3 className="font-semibold mb-4">Services</h3>
             <ul className="space-y-2 text-sm">
-              <li><span className="text-muted-foreground">Local Rental</span></li>
-              <li><span className="text-muted-foreground">One Way Trip</span></li>
-              <li><span className="text-muted-foreground">Round Trip</span></li>
-              <li><span className="text-muted-foreground">Airport Transfer</span></li>
-              <li><span className="text-muted-foreground">Outstation</span></li>
+              <li><Link to="/" className="text-muted-foreground hover:text-primary transition-colors">Cab Booking</Link></li>
+              <li><Link to="/transport-booking" className="text-muted-foreground hover:text-primary transition-colors">Transport Booking</Link></li>
+              <li><Link to="/dj-sound-booking" className="text-muted-foreground hover:text-primary transition-colors">DJ & Sound Booking</Link></li>
+              <li><Link to="/event-management" className="text-muted-foreground hover:text-primary transition-colors">Event Management</Link></li>
             </ul>
           </div>
 
@@ -82,6 +80,11 @@ const Footer = () => {
         </div>
 
         <div className="border-t mt-8 pt-8 text-center text-sm text-muted-foreground">
+          <div className="flex flex-wrap justify-center gap-4 mb-4">
+            <Link to="/privacy-policy" className="hover:text-primary transition-colors">Privacy Policy</Link>
+            <span>•</span>
+            <Link to="/terms-and-conditions" className="hover:text-primary transition-colors">Terms & Conditions</Link>
+          </div>
           <p>&copy; {new Date().getFullYear()} BHADA24 IL. All rights reserved.</p>
         </div>
       </div>

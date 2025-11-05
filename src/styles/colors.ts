@@ -1,10 +1,12 @@
 // Centralized color palette for Bhada24
 export const COLORS = {
-  primary: '#199675', // Green
+  //primary: '#199675', // Green
 
   kesariya: '#ff9800', // Kesariya (orange)
   black: '#000000',
   white: '#FFFFFF',
-  red: 'rgba(235, 11, 11, 1)', // Red
+  primary: 'rgba(235, 11, 11, 1)', // Red
   //primary: 'rgba(235, 11, 11, 1)', // Red
+  green: '#008000',
+  lightGray: '#f5f5f5',
 };

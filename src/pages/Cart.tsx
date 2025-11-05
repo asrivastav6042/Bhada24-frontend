@@ -443,12 +443,12 @@ const Cart = () => {
                             
                             {/* Show remaining amount info for token payment */}
                             {paymentType === "token" && remainingAmount > 0 && (
-                              <div className="mt-3 bg-blue-50 border border-blue-200 rounded-lg p-3">
+                              <div className="mt-3 bg-primary/10 border border-primary/20 rounded-lg p-3">
                                 <div className="flex items-start gap-2">
-                                  <div className="text-blue-600 mt-0.5">ℹ️</div>
+                                  <div className="text-primary mt-0.5">ℹ️</div>
                                   <div className="flex-1">
-                                    <p className="text-sm font-medium text-blue-900">Remaining Payment</p>
-                                    <p className="text-xs text-blue-700 mt-1">
+                                    <p className="text-sm font-medium text-primary">Remaining Payment</p>
+                                    <p className="text-xs text-primary/80 mt-1">
                                       You will pay <span className="font-semibold">₹{remainingAmount.toFixed(2)}</span> to the driver after completing the trip.
                                     </p>
                                   </div>

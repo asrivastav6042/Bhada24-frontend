@@ -293,7 +293,7 @@ export default function BookingForm({ loading, setLoading }) {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <div>
                   <div className="flex items-center gap-2 text-gray-700 font-medium mb-2">
-                    <MapPin className="h-5 w-5 text-blue-500" />
+                    <MapPin className="h-5 w-5 text-primary" />
                     Pickup Location
                   </div>
                   <Input
@@ -349,7 +349,7 @@ export default function BookingForm({ loading, setLoading }) {
                 </div>
                 <div>
                   <div className="flex items-center gap-2 text-gray-700 font-medium mb-2">
-                    <Bus className="h-5 w-5 text-blue-600" />
+                    <Bus className="h-5 w-5 text-primary" />
                     Vehicle Size
                   </div>
                   <Select value={vehicleSize} onValueChange={setVehicleSize}>
@@ -403,7 +403,7 @@ export default function BookingForm({ loading, setLoading }) {
 
               <div className="mb-10">
                 <div className="flex items-center gap-2 text-gray-700 font-medium mb-2">
-                  <MessageSquare className="h-5 w-5 text-blue-500" />
+                  <MessageSquare className="h-5 w-5 text-primary" />
                   Description
                 </div>
                 <Textarea

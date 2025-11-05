@@ -64,7 +64,7 @@ const CabCard = ({ cab, onBook, cabDetailsForBooking }: CabCardProps) => {
             className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
           />
           <div className="absolute top-3 right-3 px-3 py-1 rounded-full text-sm font-semibold flex items-center gap-1"
-            style={{ background: COLORS.primary, color: '#fff' }}>
+            style={{ background: COLORS.green, color: '#fff' }}>
             <Star className="h-4 w-4 fill-current" style={{ color: '#fff' }} />
             {cab.rating}
           </div>
@@ -76,38 +76,38 @@ const CabCard = ({ cab, onBook, cabDetailsForBooking }: CabCardProps) => {
               <p className="text-xs sm:text-sm text-muted-foreground">{cab.type}</p>
             </div>
             <div className="text-right shrink-0">
-              <p className="text-xl sm:text-2xl font-bold" style={{ color: COLORS.primary }}>₹{Number(cab.pricePerKm).toFixed(2)}</p>
-              <p className="text-xs" style={{ color: COLORS.primary }}>per km</p>
+              <p className="text-xl sm:text-2xl font-bold" style={{ color: COLORS.black }}>₹{Number(cab.pricePerKm).toFixed(2)}</p>
+              <p className="text-xs" style={{ color: COLORS.black }}>per km</p>
             </div>
           </div>
           <div className="flex gap-3 sm:gap-4 text-xs sm:text-sm">
-            <div className="flex items-center gap-1" style={{ color: COLORS.primary }}>
-              <Users className="h-3 w-3 sm:h-4 sm:w-4 shrink-0" style={{ color: COLORS.primary }} />
+            <div className="flex items-center gap-1" style={{ color: COLORS.black }}>
+              <Users className="h-3 w-3 sm:h-4 sm:w-4 shrink-0" style={{ color: COLORS.black }} />
               <span className="whitespace-nowrap">{cab.seats} Seats</span>
             </div>
             {cab.ac && (
-              <div className="flex items-center gap-1" style={{ color: COLORS.primary }}>
-                <Wind className="h-3 w-3 sm:h-4 sm:w-4 shrink-0" style={{ color: COLORS.primary }} />
+              <div className="flex items-center gap-1" style={{ color: COLORS.black }}>
+                <Wind className="h-3 w-3 sm:h-4 sm:w-4 shrink-0" style={{ color: COLORS.black }} />
                 <span>AC</span>
               </div>
             )}
           </div>
           <div className="mt-3 pt-3 border-t">
             <p className="text-xs sm:text-sm text-muted-foreground">
-              Base Fare: <span className="font-semibold" style={{ color: COLORS.primary }}>₹{Number(cab.basePrice).toFixed(2)}</span>
+              Base Fare: <span className="font-semibold" style={{ color: COLORS.black }}>₹{Number(cab.basePrice).toFixed(2)}</span>
             </p>
           </div>
         </CardContent>
         <CardFooter className="p-4 sm:p-5 pt-0" onClick={e => e.stopPropagation()}>
           <Button 
-            style={{ background: COLORS.primary }}
+            style={{ background: COLORS.green }}
             className="w-full hover:opacity-90 transition-opacity text-sm sm:text-base text-white mb-2"
             onClick={e => { e.stopPropagation(); onBook(cab.id); }}
           >
             Book Now
           </Button>&nbsp;&nbsp;&nbsp;
           <Button 
-            style={{ background: 'rgba(235, 11, 11, 1)' }}
+            style={{ background: COLORS.primary }}
             className="w-full hover:opacity-90 transition-opacity text-sm sm:text-base text-white mb-2"
             onClick={e => { e.stopPropagation(); handleAddToCart(); }}
           >
