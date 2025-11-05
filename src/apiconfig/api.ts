@@ -141,6 +141,8 @@ export const sendNotificationToUser = (payload: unknown, token?: string) =>
 // Cab Booking (uses separate booking service base URL)
 export const startBooking = (payload: unknown, token?: string) =>
   request('/api/cab/booking/startbooking', 'POST', payload, undefined, token, 0, BOOKING_BASE_URL);
+export const bulkBooking = (payload: unknown, token?: string) =>
+  request('/api/cab/booking/bulk-booking', 'POST', payload, undefined, token, 0, BOOKING_BASE_URL);
 export const getBookingsByUserId = (userId: string, token?: string) =>
   request(`/api/cab/booking/get-by-userid/${userId}`, 'GET', undefined, undefined, token, 0, BOOKING_BASE_URL);
 
@@ -184,6 +186,7 @@ export default {
   sendNotificationToUser,
   // bookings
   startBooking,
+  bulkBooking,
   getBookingsByUserId,
   updateBookingStatus,
   // ratings

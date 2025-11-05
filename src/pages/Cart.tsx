@@ -9,9 +9,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Star, Car, MapPin, Clock, Shield, Fuel, IndianRupee, CreditCard, Tag, X, Check } from "lucide-react";
-import { getAllOffers } from "@/apiconfig/api";
+import { getAllOffers, bulkBooking } from "@/apiconfig/api";
 import { useToast } from "@/hooks/use-toast";
 import { useApiCall } from "@/hooks/useApiCall";
+import { toast as sonnerToast } from "sonner";
+import { showInAppNotification } from "@/components/notification/notificationHelper";
+import type { RazorpayPaymentObject, RazorpayOptions } from "@/types/razorpay";
 
 interface Offer {
   offerId: string;
@@ -61,6 +64,8 @@ const Cart = () => {
   const [appliedCoupon, setAppliedCoupon] = useState<Offer | null>(null);
   const [showOffers, setShowOffers] = useState(false);
   const [paymentType, setPaymentType] = useState<"token" | "full">("full");
+  const [processing, setProcessing] = useState(false);
+  const [userData, setUserData] = useState({ name: "", email: "", phone: "" });
   const navigate = useNavigate();
   const { toast } = useToast();
   const { execute: fetchOffersApi } = useApiCall();
@@ -69,7 +74,15 @@ const Cart = () => {
     const stored = localStorage.getItem("cabCart");
     setCart(stored ? JSON.parse(stored) : []);
     fetchOffers();
+    loadUserData();
   }, []);
+
+  const loadUserData = () => {
+    const name = localStorage.getItem("userName") || sessionStorage.getItem("userName") || "";
+    const email = localStorage.getItem("userEmail") || sessionStorage.getItem("userEmail") || "";
+    const phone = localStorage.getItem("userMobile") || sessionStorage.getItem("userMobile") || "";
+    setUserData({ name, email, phone });
+  };
 
   const fetchOffers = async () => {
     await fetchOffersApi(
@@ -164,6 +177,198 @@ const Cart = () => {
     const updated = cart.filter((cab) => cab.id !== id);
     setCart(updated);
     localStorage.setItem("cabCart", JSON.stringify(updated));
+  };
+
+  const handlePayment = () => {
+    if (cart.length === 0) {
+      sonnerToast.error("Your cart is empty");
+      return;
+    }
+    
+    // Directly initiate Razorpay payment
+    initiateRazorpayPayment();
+  };
+
+  const initiateRazorpayPayment = () => {
+    setProcessing(true);
+
+    // Format phone number - remove any +91 or country code prefix
+    const formatPhoneNumber = (phone: string): string => {
+      let cleaned = phone.replace(/\D/g, '');
+      if (cleaned.length === 12 && cleaned.startsWith('91')) {
+        cleaned = cleaned.substring(2);
+      }
+      if (cleaned.length > 10) {
+        cleaned = cleaned.slice(-10);
+      }
+      return cleaned;
+    };
+
+    const formattedPhone = formatPhoneNumber(userData.phone);
+
+    const baseFare = calculateBaseFare();
+    const couponDiscount = calculateDiscount();
+    const { totalWithGst, tokenAmount } = calculateNewFareBreakdown(baseFare, couponDiscount);
+    const amountToPay = paymentType === "token" ? tokenAmount : totalWithGst;
+
+    // Razorpay configuration
+    const options: RazorpayOptions = {
+      key: "rzp_test_RSpF3EO4kFQ7T4", // Razorpay Key ID
+      amount: Math.round(amountToPay * 100), // Amount in paise
+      currency: "INR",
+      name: "Bhada24",
+      description: `Bulk Cab Booking - ${cart.length} cab(s)`,
+      image: "/favicon.ico",
+      handler: async function (response: RazorpayPaymentObject) {
+        console.log("Payment successful:", response);
+        await handlePaymentSuccess(response);
+      },
+      prefill: {
+        name: userData.name,
+        email: userData.email,
+        contact: formattedPhone,
+      },
+      notes: {
+        bookingType: paymentType,
+        numberOfCabs: String(cart.length),
+      },
+      theme: {
+        color: "#FF6B00",
+      },
+      modal: {
+        ondismiss: function () {
+          setProcessing(false);
+          sonnerToast.error("Payment cancelled");
+        },
+      },
+    };
+
+    const razorpayInstance = new window.Razorpay(options);
+    
+    razorpayInstance.on('payment.failed', function (response: any) {
+      setProcessing(false);
+      sonnerToast.error("Payment failed. Please try again.");
+      console.error("Payment failed:", response.error);
+    });
+
+    razorpayInstance.open();
+    setProcessing(false);
+  };
+
+  const handlePaymentSuccess = async (razorpayResponse: RazorpayPaymentObject) => {
+    setProcessing(true);
+    
+    try {
+      const userId = localStorage.getItem("userId") || sessionStorage.getItem("userId") || "USR001";
+      
+      // Generate UUID for paymentId
+      const generateUUID = () => {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+          const r = Math.random() * 16 | 0;
+          const v = c === 'x' ? r : (r & 0x3 | 0x8);
+          return v.toString(16);
+        });
+      };
+      
+      // Format datetime to match backend LocalDateTime format (yyyy-MM-ddTHH:mm:ss)
+      const formatDateTime = (date: Date) => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        const seconds = String(date.getSeconds()).padStart(2, '0');
+        return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+      };
+
+      const now = new Date();
+      const baseFare = calculateBaseFare();
+      const couponDiscount = calculateDiscount();
+      const fareBreakdown = calculateNewFareBreakdown(baseFare, couponDiscount);
+      const amountToPay = paymentType === "token" ? fareBreakdown.tokenAmount : fareBreakdown.totalWithGst;
+      
+      // Build bulk booking payload - array of bookings
+      const bookingsPayload = cart.map((cab) => {
+        const cabFare = Number(cab.fare) || Number(cab.basePrice) || 0;
+        const cabCouponDiscount = appliedCoupon ? (cabFare / baseFare) * couponDiscount : 0;
+        const cabBreakdown = calculateNewFareBreakdown(cabFare, cabCouponDiscount);
+        
+        const bookingId = `BK${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        
+        return {
+          bookingId: bookingId,
+          userId: userId,
+          userName: userData.name,
+          userMobile: userData.phone,
+          userEmail: userData.email,
+          driverName: cab.driverName || "N/A",
+          driverContact: cab.driverContact || "N/A",
+          cabId: cab.id,
+          pickupLocation: cab.from || cab.pickupLocation || "N/A",
+          dropLocation: cab.to || cab.dropLocation || "N/A",
+          pickupDateTime: formatDateTime(new Date(cab.date || now)),
+          dropDateTime: formatDateTime(new Date(cab.returnDate || now)),
+          fare: cabFare,
+          promoDiscount: cabCouponDiscount,
+          finalFare: cabBreakdown.finalAmount,
+          gstOnFinalFare: cabBreakdown.gstAmount,
+          totalFareWithGst: cabBreakdown.totalWithGst,
+          commissionAmount: 0,
+          gstOnCommission: 0,
+          driverPayout: 0,
+          profitAmount: 0,
+          tokenAmount: cabBreakdown.tokenAmount,
+          balanceAmount: cabBreakdown.totalWithGst - (paymentType === "token" ? cabBreakdown.tokenAmount : cabBreakdown.totalWithGst),
+          bookingStatus: "PENDING",
+          statusUpdatedBy: "USER",
+          paymentStatus: paymentType === "full" ? "PAID" : "PARTIAL",
+          distanceInKm: Number(cab.distance) || 0,
+          cancellationTime: formatDateTime(now),
+          refundId: generateUUID(),
+          paymentDetails: {
+            paymentId: generateUUID(),
+            paymentMethod: "Razorpay",
+            transactionId: razorpayResponse.razorpay_payment_id,
+            transactionDate: formatDateTime(now),
+            amount: paymentType === "token" ? cabBreakdown.tokenAmount : cabBreakdown.totalWithGst,
+            status: "SUCCESS"
+          },
+          insertedAt: formatDateTime(now),
+          updatedAt: formatDateTime(now),
+          refunded: false
+        };
+      });
+
+      console.log("Bulk Booking Payload:", bookingsPayload);
+
+      // Call bulk booking API
+      const response = await bulkBooking(bookingsPayload);
+      
+      console.log("Bulk Booking Response:", response);
+      
+      setProcessing(false);
+      
+      // Clear cart
+      localStorage.removeItem("cabCart");
+      setCart([]);
+      
+      // Show success notification
+      sonnerToast.success("All bookings confirmed successfully!");
+      showInAppNotification(
+        "Booking Confirmed",
+        `${cart.length} cab(s) booked successfully! Total amount: ₹${amountToPay.toFixed(2)}`
+      );
+      
+      // Navigate to bookings page
+      setTimeout(() => {
+        navigate("/dashboard/bookings");
+      }, 1500);
+      
+    } catch (error) {
+      setProcessing(false);
+      console.error("Bulk booking submission error:", error);
+      sonnerToast.error("Failed to complete booking. Please contact support.");
+    }
   };
 
   const handleBook = (cabId: string) => {
@@ -461,12 +666,10 @@ const Cart = () => {
                             <Button
                               style={{ background: "#e00" }}
                               className="w-full text-white text-base font-semibold py-2"
-                              onClick={() => {
-                                // Book all cabs (could navigate to payment or booking page)
-                                cart.forEach((cab) => handleBook(cab.id));
-                              }}
+                              onClick={handlePayment}
+                              disabled={processing}
                             >
-                              Proceed to Pay ₹{amountToPay.toFixed(2)}
+                              {processing ? "Processing..." : `Proceed to Pay ₹${amountToPay.toFixed(2)}`}
                             </Button>
                           </div>
                         </>

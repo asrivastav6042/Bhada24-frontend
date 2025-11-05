@@ -17,6 +17,7 @@ import { getProfileByMobile } from "@/services/userService";
 import { getAllOffers, startBooking } from "@/apiconfig/api";
 import { useApiCall } from "@/hooks/useApiCall";
 import { showInAppNotification } from "@/components/notification/notificationHelper";
+import type { RazorpayPaymentObject, RazorpayOptions } from "@/types/razorpay";
 
 interface Offer {
   offerId: string;
@@ -33,45 +34,6 @@ interface Offer {
   usageLimit: number;
   promoStartDate: string;
   promoEndDate: string;
-}
-
-// Razorpay types
-interface RazorpayPaymentObject {
-  razorpay_payment_id: string;
-  razorpay_order_id?: string;
-  razorpay_signature?: string;
-}
-
-interface RazorpayOptions {
-  key: string;
-  amount: number;
-  currency: string;
-  name: string;
-  description: string;
-  image?: string;
-  order_id?: string;
-  handler: (response: RazorpayPaymentObject) => void;
-  prefill?: {
-    name?: string;
-    email?: string;
-    contact?: string;
-  };
-  notes?: Record<string, string>;
-  theme?: {
-    color?: string;
-  };
-  modal?: {
-    ondismiss?: () => void;
-  };
-}
-
-declare global {
-  interface Window {
-    Razorpay: new (options: RazorpayOptions) => {
-      open: () => void;
-      on: (event: string, handler: (response: any) => void) => void;
-    };
-  }
 }
 
 /**
