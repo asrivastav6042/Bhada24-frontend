@@ -3,6 +3,7 @@ import Header from "@/components/Header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Bell, CheckCircle, Clock } from "lucide-react";
+import { COLORS } from "@/styles/colors";
 import { getLocalNotifications, markNotificationRead, LocalNotification } from "@/services/fcmService";
 
 const formatTime = (iso?: string) => {
@@ -50,7 +51,7 @@ export default function Notifications() {
               <Card key={n.id} className={`p-4 flex items-start justify-between ${n.read ? 'opacity-70' : ''}`}>
                 <div className="flex items-start gap-3">
                   {n.read ? (
-                    <CheckCircle className="h-5 w-5 text-green-600 mt-0.5" />
+                    <CheckCircle className="h-5 w-5 mt-0.5" style={{ color: COLORS.primary }} />
                   ) : (
                     <Clock className="h-5 w-5 text-amber-600 mt-0.5" />
                   )}

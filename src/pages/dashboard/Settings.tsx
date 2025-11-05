@@ -5,6 +5,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { showTestNotification } from "@/components/notification/notificationHelper";
 
 const Settings = () => {
   const [notifications, setNotifications] = useState(true);
@@ -57,6 +58,19 @@ const Settings = () => {
                 checked={smsNotifications}
                 onCheckedChange={setSmsNotifications}
               />
+            </div>
+            <div className="pt-4 border-t">
+              <Button 
+                variant="outline" 
+                className="w-full" 
+                onClick={showTestNotification}
+              >
+                <Bell className="h-4 w-4 mr-2" />
+                Test Notification
+              </Button>
+              <p className="text-xs text-muted-foreground mt-2 text-center">
+                Click to test in-app notification with sound
+              </p>
             </div>
           </CardContent>
         </Card>

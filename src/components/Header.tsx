@@ -1,11 +1,13 @@
 import { COLORS } from "@/styles/colors";
 import { Car, Menu, X, User, LogOut, Bell } from "lucide-react";
+import { ShoppingCart } from "lucide-react";
 import { useState, useEffect } from "react";
 import api from '@/apiconfig/api';
 import { getLocalNotifications, markNotificationRead } from '@/services/fcmService';
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "./ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
+import LoginModal from "./LoginModal";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,7 +18,22 @@ import {
 } from "./ui/dropdown-menu";
 
 const Header = () => {
+  const [cartCount, setCartCount] = useState(0);
+  useEffect(() => {
+    const updateCount = () => {
+      const stored = localStorage.getItem("cabCart");
+      setCartCount(stored ? JSON.parse(stored).length : 0);
+    };
+    updateCount();
+    window.addEventListener("storage", updateCount);
+    window.addEventListener("cabCartUpdated", updateCount);
+    return () => {
+      window.removeEventListener("storage", updateCount);
+      window.removeEventListener("cabCartUpdated", updateCount);
+    };
+  }, []);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userName, setUserName] = useState<string | null>(null);
   const [userPhone, setUserPhone] = useState<string | null>(null);
@@ -116,6 +133,21 @@ const Header = () => {
         </nav>
 
         <div className="hidden md:flex items-center gap-4">
+          {/* Cart Icon */}
+          <div className="relative">
+            <button
+              className="relative h-10 w-10 rounded-full p-2"
+              onClick={() => navigate('/cart')}
+              aria-label={`View cart (${cartCount})`}
+            >
+              <ShoppingCart className="h-6 w-6" />
+              {cartCount > 0 && (
+                <span className="absolute -top-0 -right-0 inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-semibold leading-none text-white" style={{ backgroundColor: COLORS.primary }}>
+                  {cartCount}
+                </span>
+              )}
+            </button>
+          </div>
           {/* Notification bell */}
           <div className="relative">
             <button
@@ -164,15 +196,18 @@ const Header = () => {
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => navigate('/login')}
-              className="gap-2"
-            >
-              <User className="h-4 w-4" />
-              Login
-            </Button>
+            <>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setShowLoginModal(true)}
+                className="gap-2"
+              >
+                <User className="h-4 w-4" />
+                Login
+              </Button>
+              <LoginModal open={showLoginModal} onClose={() => setShowLoginModal(false)} />
+            </>
           )}
         </div>
 
@@ -187,90 +222,110 @@ const Header = () => {
 
       {/* Mobile Menu */}
       {mobileMenuOpen && (
-        <div className="md:hidden border-t animate-slide-up">
-          <nav className="flex flex-col gap-4 p-4">
-            <Link 
-              to="/?service=cabs" 
-              className={`text-sm font-medium transition-colors hover:text-primary ${
-                activeService === "cabs" ? "text-primary font-semibold" : ""
-              }`}
-              onClick={() => setMobileMenuOpen(false)}
+        <>
+          {/* Mobile Cart Icon */}
+          <div className="md:hidden flex justify-end px-4 pt-2">
+            <button
+              className="relative h-10 w-10 rounded-full p-2"
+              onClick={() => { setMobileMenuOpen(false); navigate('/cart'); }}
+              aria-label={`View cart (${cartCount})`}
             >
-              Cabs
-            </Link>
-            <Link 
-              to="/?service=dj-sound" 
-              className={`text-sm font-medium transition-colors hover:text-primary ${
-                activeService === "dj-sound" ? "text-primary font-semibold" : ""
-              }`}
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              DJ & Sound
-            </Link>
-            <Link 
-              to="/?service=event" 
-              className={`text-sm font-medium transition-colors hover:text-primary ${
-                activeService === "event" ? "text-primary font-semibold" : ""
-              }`}
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Event Management
-            </Link>
-            <div className="flex flex-col gap-3 pt-3 border-t">
-              {isLoggedIn ? (
-                <>
-                  <div className="flex items-center gap-3 p-2">
-                      <Avatar className="h-10 w-10">
-                        <AvatarImage src={profileImage || undefined} alt={userName || 'User'} />
-                        <AvatarFallback>{(userName && userName[0]) || 'U'}</AvatarFallback>
-                      </Avatar>
-                    <div className="flex flex-col">
-                      <p className="text-sm font-medium">{userName || 'User'}</p>
-                      <p className="text-xs text-muted-foreground">{userPhone || ''}</p>
-                    </div>
-                  </div>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => {
-                      setMobileMenuOpen(false);
-                      navigate('/dashboard/profile');
-                    }}
-                    className="gap-2 w-full justify-start"
-                  >
-                    <User className="h-4 w-4" />
-                    My Profile
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => {
-                      setMobileMenuOpen(false);
-                      handleLogout();
-                    }}
-                    className="gap-2 w-full justify-start"
-                  >
-                    <LogOut className="h-4 w-4" />
-                    Logout
-                  </Button>
-                </>
-              ) : (
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => {
-                    setMobileMenuOpen(false);
-                    navigate('/login');
-                  }}
-                  className="gap-2 w-full"
-                >
-                  <User className="h-4 w-4" />
-                  Login
-                </Button>
+              <ShoppingCart className="h-6 w-6" />
+              {cartCount > 0 && (
+                <span className="absolute -top-0 -right-0 inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-semibold leading-none text-white" style={{ backgroundColor: COLORS.red }}>
+                  {cartCount}
+                </span>
               )}
-            </div>
-          </nav>
-        </div>
+            </button>
+          </div>
+          <div className="md:hidden border-t animate-slide-up">
+            <nav className="flex flex-col gap-4 p-4">
+              <Link 
+                to="/?service=cabs" 
+                className={`text-sm font-medium transition-colors hover:text-primary ${
+                  activeService === "cabs" ? "text-primary font-semibold" : ""
+                }`}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Cabs
+              </Link>
+              <Link 
+                to="/?service=dj-sound" 
+                className={`text-sm font-medium transition-colors hover:text-primary ${
+                  activeService === "dj-sound" ? "text-primary font-semibold" : ""
+                }`}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                DJ & Sound
+              </Link>
+              <Link 
+                to="/?service=event" 
+                className={`text-sm font-medium transition-colors hover:text-primary ${
+                  activeService === "event" ? "text-primary font-semibold" : ""
+                }`}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Event Management
+              </Link>
+              <div className="flex flex-col gap-3 pt-3 border-t">
+                {isLoggedIn ? (
+                  <>
+                    <div className="flex items-center gap-3 p-2">
+                        <Avatar className="h-10 w-10">
+                          <AvatarImage src={profileImage || undefined} alt={userName || 'User'} />
+                          <AvatarFallback>{(userName && userName[0]) || 'U'}</AvatarFallback>
+                        </Avatar>
+                      <div className="flex flex-col">
+                        <p className="text-sm font-medium">{userName || 'User'}</p>
+                        <p className="text-xs text-muted-foreground">{userPhone || ''}</p>
+                      </div>
+                    </div>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => {
+                        setMobileMenuOpen(false);
+                        navigate('/dashboard/profile');
+                      }}
+                      className="gap-2 w-full justify-start"
+                    >
+                      <User className="h-4 w-4" />
+                      My Profile
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => {
+                        setMobileMenuOpen(false);
+                        handleLogout();
+                      }}
+                      className="gap-2 w-full justify-start"
+                    >
+                      <LogOut className="h-4 w-4" />
+                      Logout
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => {
+                        setMobileMenuOpen(false);
+                        setShowLoginModal(true);
+                      }}
+                      className="gap-2 w-full"
+                    >
+                      <User className="h-4 w-4" />
+                      Login
+                    </Button>
+                    <LoginModal open={showLoginModal} onClose={() => setShowLoginModal(false)} />
+                  </>
+                )}
+              </div>
+            </nav>
+          </div>
+        </>
       )}
     </header>
   );

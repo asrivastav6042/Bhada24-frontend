@@ -2,8 +2,20 @@ import { Slider } from "./ui/slider";
 import { Label } from "./ui/label";
 import { Checkbox } from "./ui/checkbox";
 import { Card } from "./ui/card";
+import { COLORS } from "@/styles/colors";
 
 interface FilterSidebarProps {
+  minRating?: number;
+  setMinRating?: (rating: number) => void;
+  selectedBrand?: string;
+  setSelectedBrand?: (brand: string) => void;
+  fuelType?: string;
+  setFuelType?: (type: string) => void;
+  transmission?: string;
+  setTransmission?: (type: string) => void;
+  brandOptions?: string[];
+  fuelOptions?: string[];
+  transmissionOptions?: string[];
   priceRange: number[];
   setPriceRange: (range: number[]) => void;
   selectedTypes: string[];
@@ -33,6 +45,17 @@ const FilterSidebar = ({
   ratingOptions,
   minFare,
   maxFare,
+  minRating = 0,
+  setMinRating = () => {},
+  selectedBrand = '',
+  setSelectedBrand = () => {},
+  fuelType = '',
+  setFuelType = () => {},
+  transmission = '',
+  setTransmission = () => {},
+  brandOptions = [],
+  fuelOptions = ['Petrol', 'Diesel', 'Electric', 'CNG'],
+  transmissionOptions = ['Automatic', 'Manual'],
 }: FilterSidebarProps) => {
 
   const toggleType = (type: string) => {
@@ -52,10 +75,147 @@ const FilterSidebar = ({
   };
 
   return (
+  <>
+    <style>
+      {`
+        input[type="radio"] {
+          appearance: none;
+          width: 18px;
+          height: 18px;
+          border: 2px solid #ccc;
+          border-radius: 50%;
+          outline: none;
+          cursor: pointer;
+          position: relative;
+        }
+        
+        input[type="radio"]:checked {
+          border-color: ${COLORS.primary};
+        }
+        
+        input[type="radio"]:checked::before {
+          content: "";
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          width: 10px;
+          height: 10px;
+          border-radius: 50%;
+          background-color: ${COLORS.primary};
+        }
+      `}
+    </style>
   <Card className="p-6 space-y-6 sticky top-20">
       <div>
         <h3 className="font-semibold text-lg mb-4">Filters</h3>
       </div>
+      {/* Minimum Rating */}
+      <div className="space-y-3">
+        <Label className="text-base font-medium">Minimum Rating</Label>
+        <input
+          type="range"
+          min={0}
+          max={5}
+          step={0.5}
+          value={minRating}
+          onChange={e => setMinRating(Number(e.target.value))}
+          style={{ width: '100%' }}
+        />
+        <div className="flex justify-between text-sm text-muted-foreground">
+          <span>0</span>
+          <span>5</span>
+        </div>
+        <div className="text-sm">Selected: {minRating}+</div>
+      </div>
+
+      {/* Car Brand/Model (Radio) */}
+      <div className="space-y-3">
+        <Label className="text-base font-medium">Car Brand/Model</Label>
+        <div className="flex flex-col gap-2">
+          <label className="flex items-center gap-2">
+            <input
+              type="radio"
+              name="brand"
+              value=""
+              checked={selectedBrand === ""}
+              onChange={() => setSelectedBrand("")}
+            />
+            <span style={{ fontWeight: selectedBrand === "" ? "bold" : "normal" }}>All Brands</span>
+          </label>
+          {brandOptions.map((brand) => (
+            <label key={brand} className="flex items-center gap-2">
+              <input
+                type="radio"
+                name="brand"
+                value={brand}
+                checked={selectedBrand === brand}
+                onChange={() => setSelectedBrand(brand)}
+              />
+              <span style={{ fontWeight: selectedBrand === brand ? "bold" : "normal" }}>{brand}</span>
+            </label>
+          ))}
+        </div>
+      </div>
+
+      {/* Fuel Type (Radio) */}
+      <div className="space-y-3">
+        <Label className="text-base font-medium">Fuel Type</Label>
+        <div className="flex flex-col gap-2">
+          <label className="flex items-center gap-2">
+            <input
+              type="radio"
+              name="fuelType"
+              value=""
+              checked={fuelType === ""}
+              onChange={() => setFuelType("")}
+            />
+            <span style={{ fontWeight: fuelType === "" ? "bold" : "normal" }}>All Types</span>
+          </label>
+          {fuelOptions.map((type) => (
+            <label key={type} className="flex items-center gap-2">
+              <input
+                type="radio"
+                name="fuelType"
+                value={type}
+                checked={fuelType === type}
+                onChange={() => setFuelType(type)}
+              />
+              <span style={{ fontWeight: fuelType === type ? "bold" : "normal" }}>{type}</span>
+            </label>
+          ))}
+        </div>
+      </div>
+
+      {/* Transmission (Radio) */}
+      <div className="space-y-3">
+        <Label className="text-base font-medium">Transmission</Label>
+        <div className="flex flex-col gap-2">
+          <label className="flex items-center gap-2">
+            <input
+              type="radio"
+              name="transmission"
+              value=""
+              checked={transmission === ""}
+              onChange={() => setTransmission("")}
+            />
+            <span style={{ fontWeight: transmission === "" ? "bold" : "normal" }}>All</span>
+          </label>
+          {transmissionOptions.map((type) => (
+            <label key={type} className="flex items-center gap-2">
+              <input
+                type="radio"
+                name="transmission"
+                value={type}
+                checked={transmission === type}
+                onChange={() => setTransmission(type)}
+              />
+              <span style={{ fontWeight: transmission === type ? "bold" : "normal" }}>{type}</span>
+            </label>
+          ))}
+        </div>
+      </div>
+
 
       {/* Price Range */}
       <div className="space-y-3">
@@ -68,7 +228,7 @@ const FilterSidebar = ({
             max={25}
             step={1}
             className="mb-3"
-            style={{ '--color-primary': '#199675' } as React.CSSProperties}
+            style={{ '--color-primary': COLORS.primary } as React.CSSProperties}
           />
           <div className="flex justify-between text-sm text-muted-foreground">
             <span>₹{priceRange[0]}</span>
@@ -87,12 +247,12 @@ const FilterSidebar = ({
                 id={type}
                 checked={selectedTypes.includes(type)}
                 onCheckedChange={() => toggleType(type)}
-                style={{ borderColor: '#199675', color: '#199675' }}
+                style={{ borderColor: selectedTypes.includes(type) ? COLORS.primary : '#222', backgroundColor: selectedTypes.includes(type) ? COLORS.primary : 'transparent' }}
               />
               <label
                 htmlFor={type}
                 className="text-sm cursor-pointer leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                style={{ color: '#199675' }}
+                style={{ color: '#222' }}
               >
                 {type}
               </label>
@@ -111,12 +271,12 @@ const FilterSidebar = ({
                 id={`seats-${seats}`}
                 checked={selectedSeats.includes(seats)}
                 onCheckedChange={() => toggleSeats(seats)}
-                style={{ borderColor: '#199675', color: '#199675' }}
+                style={{ borderColor: selectedSeats.includes(seats) ? COLORS.primary : '#222', backgroundColor: selectedSeats.includes(seats) ? COLORS.primary : 'transparent' }}
               />
               <label
                 htmlFor={`seats-${seats}`}
                 className="text-sm cursor-pointer leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                style={{ color: '#199675' }}
+                style={{ color: '#222' }}
               >
                 {seats} Seater
               </label>
@@ -133,16 +293,19 @@ const FilterSidebar = ({
             id="ac"
             checked={acOnly}
             onCheckedChange={(checked) => setAcOnly(checked as boolean)}
+            style={{ borderColor: acOnly ? COLORS.primary : '#222', backgroundColor: acOnly ? COLORS.primary : 'transparent' }}
           />
           <label
             htmlFor="ac"
             className="text-sm cursor-pointer leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+            style={{ color: '#222' }}
           >
             AC Only
           </label>
         </div>
       </div>
     </Card>
+  </>
   );
 };
 

@@ -2,10 +2,9 @@
 // Extracted from OpenAPI spec at https://bhada24-core.onrender.com/v3/api-docs
 // Keeps a small, central place for HTTP calls used by the frontend.
 
-// Use relative URLs in development so the dev server proxy can forward requests and avoid CORS.
-export const BASE_URL = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.DEV)
-  ? ''
-  : 'https://bhada24-core.onrender.com';
+// Backend URLs
+export const BASE_URL = 'https://bhada24-core-4xlb.onrender.com'; // Default backend
+export const BOOKING_BASE_URL = 'https://bhada24-main-15sp.onrender.com'; // Booking service
 
 type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
@@ -16,15 +15,18 @@ type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
  * - body: JSON-serializable body for POST/PUT/PATCH
  * - params: query params map
  * - token: optional bearer token to attach
+ * - baseUrl: optional custom base URL (defaults to BASE_URL)
  */
 export async function request<T = any>(
   path: string,
   method: HttpMethod = 'GET',
   body?: any,
   params?: Record<string, string | number | boolean>,
-  token?: string
+  token?: string,
+  retryCount = 0,
+  baseUrl: string = BASE_URL
 ): Promise<T> {
-  let url = `${BASE_URL}${path.startsWith('/') ? path : `/${path}`}`;
+  let url = `${baseUrl}${path.startsWith('/') ? path : `/${path}`}`;
 
   if (params && Object.keys(params).length) {
     const search = new URLSearchParams();
@@ -63,6 +65,33 @@ export async function request<T = any>(
 
   if (!res.ok) {
     const txt = await res.text();
+    
+    // If we get 401 Unauthorized and haven't retried yet, try to refresh the token
+    if (res.status === 401 && retryCount === 0) {
+      try {
+        // Dynamically import authService to avoid circular dependencies
+        const { refreshToken } = await import('@/services/authService');
+        const newToken = await refreshToken();
+        
+        if (newToken) {
+          // Retry the request with the new token
+          return request<T>(path, method, body, params, newToken, retryCount + 1, baseUrl);
+        }
+      } catch (refreshError) {
+        console.error('Token refresh failed:', refreshError);
+        // Clear token and redirect to login
+        sessionStorage.removeItem(TOKEN_KEY);
+        localStorage.removeItem(TOKEN_KEY);
+        sessionStorage.removeItem('bhada24_token_expiry');
+        localStorage.removeItem('bhada24_token_expiry');
+        
+        // Check if we're not already on login page to avoid infinite redirect
+        if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
+          window.location.href = '/login';
+        }
+      }
+    }
+    
     throw new Error(`Request failed ${res.status} ${res.statusText}: ${txt}`);
   }
 
@@ -109,9 +138,34 @@ export const updateFCMToken = (payload: unknown, token?: string) =>
 export const sendNotificationToUser = (payload: unknown, token?: string) =>
   request('/api/common/notifications/send-notification', 'POST', payload, undefined, token);
 
+// Cab Booking (uses separate booking service base URL)
+export const startBooking = (payload: unknown, token?: string) =>
+  request('/api/cab/booking/startbooking', 'POST', payload, undefined, token, 0, BOOKING_BASE_URL);
+export const bulkBooking = (payload: unknown, token?: string) =>
+  request('/api/cab/booking/bulk-booking', 'POST', payload, undefined, token, 0, BOOKING_BASE_URL);
+export const getBookingsByUserId = (userId: string, token?: string) =>
+  request(`/api/cab/booking/get-by-userid/${userId}`, 'GET', undefined, undefined, token, 0, BOOKING_BASE_URL);
+
+// Update booking status (cancel booking)
+export const updateBookingStatus = (payload: {
+  bookingId: string;
+  cabId: string;
+  bookingStatus: string;
+  paymentStatus: string;
+  role: string;
+}, token?: string) =>
+  request('/api/cab/booking/update-booking-status', 'PUT', payload, undefined, token, 0, BOOKING_BASE_URL);
+
+// Cab Rating
+export const addCabRating = (payload: unknown, token?: string) =>
+  request('/api/common/cab-rating/add', 'POST', payload, undefined, token);
+export const getUserRatings = (userId: string, token?: string) =>
+  request(`/api/common/cab-rating/user/${userId}`, 'GET', undefined, undefined, token);
+
 // Expose everything useful
 export default {
   BASE_URL,
+  BOOKING_BASE_URL,
   request,
   // jwt
   generateToken,
@@ -130,4 +184,12 @@ export default {
   registerFCMToken,
   updateFCMToken,
   sendNotificationToUser,
+  // bookings
+  startBooking,
+  bulkBooking,
+  getBookingsByUserId,
+  updateBookingStatus,
+  // ratings
+  addCabRating,
+  getUserRatings,
 };

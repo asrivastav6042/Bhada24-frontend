@@ -38,9 +38,18 @@ const DashboardSidebar = () => {
   }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem("isLoggedIn");
-    localStorage.removeItem("userPhone");
-    localStorage.removeItem("userName");
+    // Clear storage - same as Header
+    try {
+      sessionStorage.removeItem('bhada24_token');
+      localStorage.removeItem('bhada24_token');
+      localStorage.removeItem('isLoggedIn');
+      localStorage.removeItem('userName');
+      localStorage.removeItem('userPhone');
+      localStorage.removeItem('userId');
+      localStorage.removeItem('profileImageUrl');
+    } catch (e) {
+      // ignore
+    }
     toast.success("Logged out successfully");
     navigate("/");
     setOpen(false);

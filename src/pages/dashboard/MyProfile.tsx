@@ -21,10 +21,10 @@ const MyProfile = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchProfileImage = async () => {
-    const userId = localStorage.getItem('userId') || sessionStorage.getItem('userId');
-    if (!userId) return;
+    const mobile = localStorage.getItem('userPhone') || sessionStorage.getItem('userPhone');
+    if (!mobile) return;
     try {
-      const res = await api.request(`/api/users/find/${userId}`, 'GET');
+      const res = await api.request(`/api/users/find/${mobile}`, 'GET');
       let imgUrl = "";
       if (Array.isArray(res?.responseData)) {
         imgUrl = res.responseData[0]?.imageUrl || "";

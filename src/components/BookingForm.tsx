@@ -148,25 +148,15 @@ export default function BookingForm({ loading, setLoading }) {
       };
       try {
         setLoading(true); // Start loading
+        // Use api.ts helpers for token and API call
+        const { generateToken, request } = await import("@/apiconfig/api");
         // Always fetch a new token before search
-        const tokenRes = await fetch("https://bhada24-core.onrender.com/auth/generate/token", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ key: "BHADA24", password: "P@55word" })
-        });
-        const tokenData = await tokenRes.json();
+        const tokenData = await generateToken({ key: "BHADA24", password: "P@55word" });
         const token = tokenData.token;
-        localStorage.setItem("token", token);
+        localStorage.setItem("bhada24_token", token);
 
-        const response = await fetch("https://carbookingservice-0mby.onrender.com/api/cab/registration/search", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}`,
-          },
-          body: JSON.stringify(payload),
-        });
-        const result = await response.json();
+        // Use request helper for API call
+        const result = await request("/api/cab/registration/search", "POST", payload, undefined, token);
         setLoading(false); // Stop loading after fetch
         if (result.responseCode === 200 && Array.isArray(result.responseData)) {
           toast.success("Cabs found!");
@@ -206,7 +196,7 @@ export default function BookingForm({ loading, setLoading }) {
                     : "pb-1"
                 }`}
                 style={activeTab === tab.key
-                  ? { borderBottomColor: COLORS.primary, color: '#222' }
+                  ? { borderBottomColor: COLORS.primary, color: COLORS.primary }
                   : { color: '#222' }}
               >
                 {tab.icon}
@@ -303,7 +293,7 @@ export default function BookingForm({ loading, setLoading }) {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <div>
                   <div className="flex items-center gap-2 text-gray-700 font-medium mb-2">
-                    <MapPin className="h-5 w-5 text-blue-500" />
+                    <MapPin className="h-5 w-5 text-primary" />
                     Pickup Location
                   </div>
                   <Input
@@ -346,7 +336,7 @@ export default function BookingForm({ loading, setLoading }) {
                 </div>
                 <div>
                   <div className="flex items-center gap-2 text-gray-700 font-medium mb-2">
-                    <Calendar className="h-5 w-5 text-green-600" />
+                    <Calendar className="h-5 w-5" style={{ color: COLORS.primary }} />
                     Pickup Date
                   </div>
                   <Input
@@ -359,7 +349,7 @@ export default function BookingForm({ loading, setLoading }) {
                 </div>
                 <div>
                   <div className="flex items-center gap-2 text-gray-700 font-medium mb-2">
-                    <Bus className="h-5 w-5 text-blue-600" />
+                    <Bus className="h-5 w-5 text-primary" />
                     Vehicle Size
                   </div>
                   <Select value={vehicleSize} onValueChange={setVehicleSize}>
@@ -413,7 +403,7 @@ export default function BookingForm({ loading, setLoading }) {
 
               <div className="mb-10">
                 <div className="flex items-center gap-2 text-gray-700 font-medium mb-2">
-                  <MessageSquare className="h-5 w-5 text-blue-500" />
+                  <MessageSquare className="h-5 w-5 text-primary" />
                   Description
                 </div>
                 <Textarea
